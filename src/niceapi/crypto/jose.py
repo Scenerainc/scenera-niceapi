@@ -17,7 +17,7 @@ from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import ec, padding, rsa
 from cryptography.hazmat.primitives.asymmetric.types import (
-    CERTIFICATE_PUBLIC_KEY_TYPES,
+    CertificatePublicKeyTypes,
 )
 
 from ..util._tools import _base64url_decode, _logger_setup
@@ -85,11 +85,11 @@ class Verify(JWSVerify):
             self._la_root_cert_key = root_certificate.public_key()
 
     def __get_public_key(self, certs: List[str]) -> Any:
-        public_key: Optional[CERTIFICATE_PUBLIC_KEY_TYPES] = None
+        public_key: Optional[CertificatePublicKeyTypes] = None
         issuer: Optional[x509.Certificate] = None
         target: Optional[x509.Certificate] = None
         first_public_key: Optional[
-            CERTIFICATE_PUBLIC_KEY_TYPES
+            CertificatePublicKeyTypes
         ] = x509.load_der_x509_certificate(
             b64decode(certs[0]), default_backend()
         ).public_key()
