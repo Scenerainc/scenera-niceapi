@@ -387,7 +387,7 @@ class TestVerify:
             _verifying(private_key.public_key(), cert)
 
         # check
-        assert str(e.value) == "verify() missing 1 required positional argument: 'algorithm'"
+        assert str(e.value) == "DSAPublicKey.verify() missing 1 required positional argument: 'algorithm'"
 
     def test_verify_10(self, mocker: MockerFixture):
         """
