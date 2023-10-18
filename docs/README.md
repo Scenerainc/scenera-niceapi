@@ -253,7 +253,7 @@ CMF <-- Cloud -- : ManagementEndPoint
 App <-- CMF -- : True/False
 
 App -> CMF ++ : ApiRequest.get_date_time_from_la()
-CMF -> Cloud ++ : TrustedTimeRequest
+CMF -> Cloud ++ : GetDateTime
 CMF <-- Cloud -- : TrustedTimeResponse
 App <-- CMF -- : True/False, datetime
 App -> App : Sync with NICE LA
@@ -264,7 +264,7 @@ CMF <-- Cloud -- : ManagementObject
 App <-- CMF -- : True/False
 
 App -> CMF ++ : ApiRequest.get_date_time_from_as()
-CMF -> Cloud ++ : TrustedTimeRequest
+CMF -> Cloud ++ : GetDateTime
 CMF <-- Cloud -- : TrustedTimeResponse
 App <-- CMF -- : True/False, datetime
 App -> App : Sync with NICE AS
