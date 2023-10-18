@@ -6,20 +6,20 @@ from logging import INFO, Logger, getLogger
 from typing import Any, Dict, Optional, Union
 
 import requests
-import requests.packages.urllib3
+import urllib3
 from requests.adapters import HTTPAdapter
 
 # disable warning
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
-from requests.packages.urllib3.poolmanager import PoolManager
-from requests.packages.urllib3.util.ssl_ import create_urllib3_context
+from urllib3.exceptions import InsecureRequestWarning
+from urllib3.poolmanager import PoolManager
+from urllib3.util.ssl_ import create_urllib3_context
 
 from ..util._tools import _file_update, _logger_setup
 from .webapi_base import BODY_T, JSON_T, TLS_ROOT_CERTS_T, WebAPIBase
 
 VERIFY_CERT_T = Union[str, bool, None]
 
-requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+urllib3.disable_warnings(InsecureRequestWarning)
 
 CIPHERS: str = (
     "ECDHE-ECDSA-AES256-GCM-SHA384:"
