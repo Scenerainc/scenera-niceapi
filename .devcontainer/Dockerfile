@@ -8,6 +8,7 @@ ARG USER_GID=$USER_UID
 USER root
 RUN apt update \
     && export DEBIAN_FRONTEND=noninteractive \
+    && LANG=C LC_ALL=C apt-get -y install --no-install-recommends openjdk-17-jre-headless \
     && LANG=C LC_ALL=C apt-get -y install --no-install-recommends \    
     plantuml \
     pandoc \
