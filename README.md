@@ -43,11 +43,11 @@ pip install niceapi
 ```
 - Install by the sdist format file
 ``` sh
-pip install niceapi-1.0.0.tar.gz
+pip install niceapi-1.0.1.tar.gz
 ```
 - Install by the wheel format file
 ``` sh
-pip install niceapi-1.0.0-py3-none-any.whl
+pip install niceapi-1.0.1-py3-none-any.whl
 ```
 - Install by pypi
 ``` sh

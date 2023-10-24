@@ -1,4 +1,4 @@
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 from .api.common import WebAPIScheme
 from .api.control import ControlObject
 from .api.crypto import DataCrypto
