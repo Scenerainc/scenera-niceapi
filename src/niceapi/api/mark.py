@@ -472,6 +472,20 @@ class SceneMark:
         def json(self) -> DICT_T:
             """dict: get JSON Object of SceneMark.SceneData"""
             return self._json
+        
+        def set_version_number(self, version_number: int) -> None:
+            """Set SceneData["VersionNumber"]
+
+            Parameters
+            ----------
+            version_number : int
+                value of VersionNumber
+
+            Returns
+            -------
+            None
+            """
+            self._json["VersionNumber"] = version_number
 
         def set_source_node_id(self, source_node_id: str) -> None:
             """Set SceneData["SourceNodeID"]
