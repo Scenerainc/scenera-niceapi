@@ -318,6 +318,20 @@ class SceneMark:
             None
             """
             self._json["VersionNumber"] = version_number
+            
+        def set_event_type(self, event_type: str) -> None:
+            """Set Analysis["EventType"]
+
+            Parameters
+            ----------
+            event_type : str
+                EventType
+
+            Returns
+            -------
+            None
+            """
+            self._json["EventType"] = event_type
 
         def set_scene_mode(self, scene_mode: str) -> None:
             """Set Analysis["SceneMode"]
