@@ -1,16 +1,24 @@
+from __future__ import annotations
+
 from logging import INFO, Logger, getLogger
-from typing import Any, Dict, List, Optional, Union
+from typing  import TYPE_CHECKING
 
-from ..util._tools import _logger_setup
+from ..enums import SceneDataType, UploadStatus
 
-DICT_T = Dict[str, Any]
+from ..util._tools      import _logger_setup
+from ..util._json_utils import JavaScriptObjectNotationMap
 
+if TYPE_CHECKING:
+    from typing import Any, Dict, List, Optional, Union
+    from typing_extensions import Self
+
+    DICT_T = Dict[str, Any]
 
 logger: Logger = getLogger(__name__)
 _logger_setup(logger, INFO)
 
 
-class SceneMark:
+class SceneMark(JavaScriptObjectNotationMap):
     """SceneMark class
 
     use ApiRequest.new_scene_mark() for instantiation
@@ -40,19 +48,14 @@ class SceneMark:
             value of SceneMark["NodeID"]
 
         """
-        self._json: DICT_T = {
+        self._json = {
             "Version": version,
             "TimeStamp": time_stamp,
             "SceneMarkID": scene_mark_id,
             "NodeID": node_id,
         }
 
-    @property
-    def json(self) -> DICT_T:
-        """dict: get JSON Object of SceneMark"""
-        return self._json
-
-    class DetectedObject:
+    class DetectedObject(JavaScriptObjectNotationMap):
         """SceneMark["AnalysisList"][N]["DetectedObjects"] element class
 
         Examples
@@ -75,12 +78,7 @@ class SceneMark:
         """
 
         def __init__(self) -> None:
-            self._json: DICT_T = dict()
-
-        @property
-        def json(self) -> DICT_T:
-            """dict: get JSON Object of SceneMark.DetectedObject"""
-            return self._json
+            self._json: DICT_T = {}
 
         def set_version_number(self, version_number: int) -> None:
             """Set DetectedObject["VersionNumber"]
@@ -276,7 +274,7 @@ class SceneMark:
             """
             self._json["ThumbnailSceneDataID"] = thumbnail_scene_data_id
 
-    class Analysis:
+    class Analysis(JavaScriptObjectNotationMap):
         """SceneMark["AnalysisList"] element class
 
         Examples
@@ -299,11 +297,6 @@ class SceneMark:
 
         def __init__(self) -> None:
             self._json: DICT_T = dict()
-
-        @property
-        def json(self) -> DICT_T:
-            """dict: get JSON Object of SceneMark.Analysis"""
-            return self._json
 
         def set_version_number(self, version_number: int) -> None:
             """Set Analysis["VersionNumber"]
@@ -418,7 +411,7 @@ class SceneMark:
             else:
                 self._json["DetectedObjects"] = [detected_object.json]
 
-    class SceneData:
+    class SceneData(JavaScriptObjectNotationMap):
         """SceneMark["SceneDataList"] element class
 
         Examples
@@ -467,11 +460,6 @@ class SceneMark:
                 "TimeStamp": time_stamp,
                 "Encryption": {"EncryptionOn": encryption},
             }
-
-        @property
-        def json(self) -> DICT_T:
-            """dict: get JSON Object of SceneMark.SceneData"""
-            return self._json
         
         def set_version_number(self, version_number: int) -> None:
             """Set SceneData["VersionNumber"]
@@ -531,33 +519,35 @@ class SceneMark:
             """
             self._json["Duration"] = duration
 
-        def set_data_type(self, data_type: str) -> None:
+        def set_data_type(self, data_type: SceneDataType) -> None:
             """Set SceneData["DataType"]
 
             Parameters
             ----------
-            data_type : str
-                value of DataType
+            data_type : SCENEDATA_T
+                Any of niceapi.SceneDataTypes
 
             Returns
             -------
             None
             """
-            self._json["DataType"] = data_type
+            scenedata_type = SceneDataType(str(data_type))
+            self._json["DataType"] = str(scenedata_type)
 
-        def set_status(self, status: str) -> None:
+        def set_status(self, status: UploadStatus) -> None:
             """Set SceneData["Status"]
 
             Parameters
             ----------
             status : str
-                value of Status
+                Any of niceapi.UploadStatus
 
             Returns
             -------
             None
             """
-            self._json["Status"] = status
+            upload_status = UploadStatus(str(status))
+            self._json["Status"] = upload_status.value
 
         def set_media_format(self, media_format: str) -> None:
             """Set SceneData["MediaFormat"]
@@ -811,8 +801,7 @@ class SceneMark:
             """
             self._json["Encryption"] = encryption
 
-    """End of Internal Class Definition
-    """
+    # End of Internal Class Definition
 
     def set_destination_id(self, destination_id: str) -> None:
         """Set SceneMark["DestinationID"]
