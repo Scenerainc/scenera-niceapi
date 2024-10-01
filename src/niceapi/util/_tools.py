@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import base64
 import contextlib
 import json
@@ -15,14 +17,56 @@ from logging import (
 )
 from time import time
 from types import TracebackType
-from typing import Any, Dict, Generator, List, Optional, Type, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Generator,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    SupportsIndex,
+    Type,
+    Union,
+)
 
-DICT_T = Dict[str, Any]
-LIST_T = List[str]
+if TYPE_CHECKING:
+    from typing import TypeVar
+
+    T = TypeVar("T")
+    DICT_T = Dict[str, T]
+    LIST_T = List[str]
 
 LOG_FORMAT: str = (
     "%(asctime)s %(name)s:%(lineno)s %(funcName)s [%(levelname)s]: %(message)s"
 )
+
+
+def _json_key(key: Union[str, SupportsIndex, T]) -> Union[str, T]:
+    if isinstance(key, str) or hasattr(key, "__str__"):
+        key: str
+        return str(key)
+    if hasattr(key, "__index__"):
+        key: SupportsIndex
+        return hex(key)
+    key: T
+    return key
+
+
+def _json_encoder_default(
+    obj: Any,
+    /,
+) -> Any:
+    if obj is None or isinstance(obj, (str, int, float, bool)):
+        return obj
+    if hasattr(obj, "__index__"):
+        return int(obj)
+    if isinstance(obj, Mapping):
+        return {_json_key(k): _json_encoder_default(v) for k, v, in obj}
+    if isinstance(obj, Iterable):
+        return [_json_encoder_default(i) for i in obj]
+    return obj
 
 
 def _logger_setup(
@@ -46,8 +90,8 @@ def _logger_setup(
     logger.setLevel(level)
 
 
-logger: Logger = getLogger(__name__)
-_logger_setup(logger, INFO)
+_logger: Logger = getLogger(__name__)
+_logger_setup(_logger, INFO)
 
 
 @contextlib.contextmanager
@@ -100,7 +144,7 @@ def _file_update(path: str, data: Any) -> bool:
         if not directory:
             directory = "."
         if not filename:
-            logger.error(f"No filename:{path}")
+            _logger.error(f"No filename:{path}")
             return False
         with tempfile.NamedTemporaryFile(dir=directory, delete=False) as f:
             f.write(data)
@@ -130,12 +174,12 @@ def _json_load(path: str) -> Optional[Any]:
 
 
 def _is_list(jsn: DICT_T, key: str) -> bool:
-    value = jsn.get(key)
+    value = jsn.get(key, None)
     if value is None:
-        logger.error(f"{key} not found")
+        _logger.error(f"{key} not found")
         return False
     if not isinstance(value, list):
-        logger.error(f"{key} is not a list")
+        _logger.error(f"{key} is not a list")
         return False
     return True
 
@@ -143,6 +187,6 @@ def _is_list(jsn: DICT_T, key: str) -> bool:
 def _has_required_keys(jsn: DICT_T, keys: LIST_T) -> bool:
     lack = [key for key in keys if key not in jsn]
     if lack:
-        logger.error(f"Lack of required parameter(s):{lack}")
+        _logger.error(f"Lack of required parameter(s):{lack}")
         return False
     return True
