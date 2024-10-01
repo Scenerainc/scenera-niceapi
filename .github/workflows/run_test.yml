@@ -1,0 +1,16 @@
+name: run-tests
+on: [push]
+
+jobs:
+  run-all-tests:
+    strategy:
+      matrix:
+        version: ['3.6', '3.7', '3.8', '3.9', '3.10', '3.11', '3.12',]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Python version
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.version }}
+      - uses: actions/checkout@v3
+      - run: make all
