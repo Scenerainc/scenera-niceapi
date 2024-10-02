@@ -1,6 +1,6 @@
-.PHONY: all test format clean clean-tox clean-pyc clean-docs clean-build clean-test docs build
+.PHONY: all test_deps clean-venv test format clean clean-tox clean-pyc clean-docs clean-build clean-test docs build
 
-all: format lint test docs build
+all: test_deps format lint test docs build
 	@echo "All passed"
 
 build:
@@ -25,14 +25,23 @@ clean:
 	-@find . -name '*~' -delete
 	-@find . -name '__pycache__' -delete
 
-lint:
+venv/bin/python3:
+	@/usr/bin/python3 -m venv venv
+
+test_deps: venv/bin/python3
+	@venv/bin/python3 -m pip install -U py tox isort black flake8
+
+lint: test_deps
 	@TOXENV=flake8,mypy,bandit tox
 
-test:
+test: test_deps
 	@TOXENV=py tox
 
-format:
+format: test_deps
 	@TOXENV=isort,black tox
+
+clean-venv:
+	-@rm -fr venv/
 
 clean-test:
 	-@rm -fr tests/htmlreport/
@@ -58,6 +67,9 @@ clean-docs:
 
 clean-tox:
 	-@rm -rf .tox/
+
+clean-all: clean clean-tox clean-docs clean-pyc clean-build clean-test clean-venv
+	@printf "Finished clean\n" 1>&2
 
 docs:
 	@TOXENV=docs tox
