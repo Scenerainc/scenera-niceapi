@@ -4,7 +4,7 @@ all: test_deps format lint test docs build
 	@echo "All passed"
 
 build:
-	@TOXENV=build tox
+	@TOXENV=build venv/bin/python3 tox
 
 clean:
 	-@rm -fr tests/htmlreport/
@@ -32,13 +32,13 @@ test_deps: venv/bin/python3
 	@venv/bin/python3 -m pip install -U py tox isort black flake8
 
 lint: test_deps
-	@TOXENV=flake8,mypy,bandit tox
+	@TOXENV=flake8,mypy,bandit venv/bin/python3 -m tox
 
 test: test_deps
-	@TOXENV=py tox
+	@TOXENV=py venv/bin/python3 -m tox
 
 format: test_deps
-	@TOXENV=isort,black tox
+	@TOXENV=isort,black venv/bin/python3 -m tox
 
 clean-venv:
 	-@rm -fr venv/
