@@ -96,11 +96,12 @@ class ModeManager(Mapping["DeviceNode", "SceneMode"]):
     def __init__(
         self,
         api: ApiRequest,
-        /,
-        device_nodes: DeviceNode = DeviceNodeBase.generate(DEVICE_NODE_COUNT),
+        device_nodes: DeviceNode = None,
         container: Optional[MutableMapping] = None,
         lock: Optional[Lock] = Lock(),
     ):
+        if device_nodes is None:
+            device_nodes = DeviceNodeBase.generate(DEVICE_NODE_COUNT)
         self.__nice_api = api
         self.__lock = lock
         self.__data = container or {}

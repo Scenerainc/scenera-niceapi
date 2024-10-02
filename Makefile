@@ -29,7 +29,7 @@ venv/bin/python3:
 	@/usr/bin/python3 -m venv venv
 
 test_deps: venv/bin/python3
-	@venv/bin/python3 -m pip install -U py tox isort black flake8
+	@venv/bin/python3 -m pip install -U py tox isort pytest black flake8
 
 lint: test_deps
 	@TOXENV=flake8,mypy,bandit venv/bin/python3 -m tox

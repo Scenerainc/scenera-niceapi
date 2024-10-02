@@ -14,6 +14,11 @@ if TYPE_CHECKING:
 
     T = TypeVar("T", int, None)
 
+_BASES = {
+    re.compile(r"^0b[01]+$",     re.IGNORECASE): 2,
+    re.compile(r"^0o[0-7]+$",    re.IGNORECASE): 8,
+    re.compile(r"^0x[0-9a-f]+$", re.IGNORECASE): 16,
+}
 
 def boolenv(key: str, truth: Optional[Sequence[str]] = None) -> bool:
     """Get an environment variable as a boolean,
@@ -35,14 +40,6 @@ def boolenv(key: str, truth: Optional[Sequence[str]] = None) -> bool:
     )
     return getenv(key, "-unset-").lower() in truth
 
-
-_bases = {
-    re.compile(r"^0b[01]+$", re.IGNORECASE): 2,
-    re.compile(r"^0o[0-7]+$", re.IGNORECASE): 8,
-    re.compile(r"^0x[0-9a-f]+$", re.IGNORECASE): 16,
-}
-
-
 def intenv(key: str, default: T = None) -> T:
     """Load an environment variable as an integer
 
@@ -60,7 +57,7 @@ def intenv(key: str, default: T = None) -> T:
     value = getenv(key, None)
     if value is None:
         return default
-    for pattern, base in _bases.items():
+    for pattern, base in _BASES.items():
         if pattern.match(value):
             return int(value, base)
     return int(value)
