@@ -1,17 +1,16 @@
-from . import scenemode
-from .scenemode import *
+from . import scenemode, regex_typing
+
+from .scenemode    import *
+from .regex_typing import *
 
 # type: ignore
-
-__local = ("scenemode",)
-
-__all__ = __local + scenemode.__all__
+__all__ = scenemode.__all__ + regex_typing.__all__
 
 if __name__:
     # Import guard, at the moment this submodule only contains 'annotations' and is incomplete
     import logging
 
-    _IMPORT_WARNING = '''Imported a type annotation  module, instead please guard the import like so:
+    _IMPORT_WARNING = '''Imported a type annotation module, instead please guard the import like so:
 
     >>> from __future__ import annotations # NOTE This converts annotation to strings at runtime,
     >>>                                    # Which avoids NameErrors for undefined variables for the types.

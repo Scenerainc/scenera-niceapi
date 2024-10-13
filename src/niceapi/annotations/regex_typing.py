@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import re
-import sys
-from typing import TYPE_CHECKING, Protocol, TypeVar, overload
+from typing import TYPE_CHECKING
 
 __all__ = (
     "RegEx",
@@ -10,40 +9,58 @@ __all__ = (
 )
 
 if TYPE_CHECKING:
-    from typing import Literal, Optional
-
-    from typing_extensions import Match, Pattern
-
-    IGNORECASE = Literal[re.IGNORECASE]
-    NOFLAG = Literal[0]
-
-_T_expression = TypeVar("_T_expression", covariant=True)
-_T_flags = TypeVar("_T_example", covariant=True)
-
+    from typing import Tuple, Union
+    from typing_extensions import Pattern
 
 class _RegExMeta(type):
     """RegEx Type MetaClass, can be matched against"""
-
     def __getitem__(
         cls,
-        pattern: _T_expression,
-        flags: Optional[re.RegexFlag[_T_flags]] = None,
-    ) -> Pattern[_T_expression]:
-        return re.compile(pattern, flags or 0)
+        args: Union[Pattern, Tuple[Pattern, int]],
+    ) -> Pattern:
+        """Compile a regular expression pattern.
+
+        Args:
+            args (Union[Pattern, Tuple[Pattern[T], int]]): 
+                A pattern to compile or a tuple containing a pattern 
+                and flags. If a tuple is provided, the first element 
+                should be a regex pattern and the second an integer 
+                representing flags for the regex compilation.
+
+        Returns:
+            Pattern[T]: A compiled regular expression pattern.
+
+        Example:
+            >>> regex = RegEx[r"\d+"]
+            >>> compiled = regex
+            >>> compiled.match("123")
+            <re.Match object; span=(0, 3), match='123'>
+
+            >>> regex_with_flags = RegEx[(r"\d+", re.IGNORECASE)]
+            >>> compiled_with_flags = regex_with_flags
+            >>> compiled_with_flags.match("ABC123")
+            <re.Match object; span=(3, 6), match='123'>
+        """
+        return re.compile(*args)
 
 
-class RegEx(Protocol[_T_expression, _T_flags], metaclass=_RegExMeta):
+
+class RegEx(metaclass=_RegExMeta):
+    """A class for functional and passive regex typing.
+
+    This class cannot be instantiated directly. Instead, 
+    use square brackets to define your regex patterns.
+
+    Example:
+        >>> regex = RegEx[r"^\w+@\w+\.\w+$"]
+        >>> regex.match("test@example.com")
+        <re.Match object; span=(0, 16), match='test@example.com'>
+
+        >>> invalid_instance = RegEx()  # Raises TypeError
+        TypeError: Cannot create an instance of RegEx, please use square brackets instead
+    """
     def __init__(self):
-        # pylint: disable=C0209
-        raise SyntaxError(
-            "Cannot create an instance of RegEx, please use square brackets instead \
-                          i.e. '%s' -> 'RegEx[...]'"
-            % "".join("%s\u0336" % i for i in "RegEx(...)")
+        """Cannot be initialized, please use square brackets instead."""
+        raise TypeError(
+            "Cannot create an instance of RegEx, please use square brackets instead"
         )
-        # pylint: enable=C0209
-
-    @overload
-    def match(
-        self, string: str, pos=0, endpos=sys.maxsize
-    ) -> Optional[Match[_T_expression]]:
-        ...
