@@ -35,10 +35,7 @@ if TYPE_CHECKING:
     from niceapi import ApiRequest
 
     from ...annotations.scenemode import (
-        IGNORECASE,
-        Example,
-        RegEx,
-        RegExpr,
+        NodeID,
         SceneMode,
     )
 
@@ -145,8 +142,7 @@ class ModeManager(Mapping["DeviceNode", "SceneMode"]):
         index: Union[
             DeviceNode,
             SupportsIndex,
-            RegEx[RegExpr[r"^[0-9a-f]$"], IGNORECASE],
-            Example[Literal["0001", "ffff", "FFFF"]],
+            NodeID,
         ],
         /,
     ) -> Optional[SceneMode]:
@@ -235,7 +231,7 @@ class ModeManager(Mapping["DeviceNode", "SceneMode"]):
         node_id: Union[
             DeviceNode,
             SupportsIndex,
-            RegEx[RegExpr[r"^[0-9a-f]$"], IGNORECASE],
+            NodeID,
         ],
     ) -> Optional[SceneMode]:
         return self.get(node_id)

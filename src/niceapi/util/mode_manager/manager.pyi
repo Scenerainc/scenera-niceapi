@@ -15,13 +15,13 @@ from .constants import DEVICE_NODE_COUNT, EXIT_TIMEOUT
 __all__ = ("ModeManager",)
 
 if TYPE_CHECKING:
+    from re import Match
     from types import TracebackType
     from typing import (
         Any,
         Dict,
         Generator,
         Iterable,
-        Literal,
         MutableMapping,
         Optional,
         SupportsIndex,
@@ -32,12 +32,9 @@ if TYPE_CHECKING:
 
     from typing_extensions import Self
 
-    from ...annotations.scenemode import (
-        IGNORECASE,
-        Example,
-        RegEx,
-        RegExpr,
+    from ...annotations import (
         SceneMode,
+        NodeID,
     )
 
     N_API = TypeVar("N_API")
@@ -134,8 +131,7 @@ class ModeManager(Mapping["DeviceNode", "SceneMode"]):
         index: Union[
             DeviceNode,
             SupportsIndex,
-            RegEx[RegExpr[r"^[0-9a-f]$"], IGNORECASE],
-            Example[Literal["0001", "ffff", "FFFF"]],
+            NodeID,
         ],
         /,
     ) -> Optional[SceneMode]:
@@ -154,7 +150,7 @@ class ModeManager(Mapping["DeviceNode", "SceneMode"]):
         Manages async mode-related tasks for each device node.
         """
     def _fetch(
-        self, __node_index: DeviceNode, *, _retries: int = MODE_RETRIES
+        self, __node_index: DeviceNode, *, _retries: int = ...,
     ) -> bool:
         """Fetches the mode information for a device node.
 
@@ -197,7 +193,7 @@ class ModeManager(Mapping["DeviceNode", "SceneMode"]):
         node_id: Union[
             DeviceNode,
             SupportsIndex,
-            RegEx[RegExpr[r"^[0-9a-f]$"], IGNORECASE],
+            NodeID,
         ],
     ) -> Optional[SceneMode]:
         """Retrieves the scene mode for a given node ID.

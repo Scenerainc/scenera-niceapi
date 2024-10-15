@@ -13,10 +13,12 @@ from .api.security import DeviceSecurityObject
 from .crypto.base import JWEDecrypt, JWEEncrypt, JWSSign, JWSVerify
 from .crypto.jose import Decrypt, Encrypt, JoseOps, Sign, Verify
 from .io.webapi_base import WebAPIBase
-from .util import abstract, mode_manager
+from .util import mode_manager
 from .util.mode_manager import ModeManager
 
 __all__ = [
+    "mode_manager",
+    "ModeManager",
     "ApiRequest",
     "ApiRequestHandler",
     "DataCrypto",

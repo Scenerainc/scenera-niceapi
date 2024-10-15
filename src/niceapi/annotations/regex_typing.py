@@ -9,6 +9,7 @@ __all__ = (
 )
 
 if TYPE_CHECKING:
+    from types  import NotImplementedType
     from typing import Tuple, Union
     from typing_extensions import Pattern
 
@@ -43,7 +44,10 @@ class _RegExMeta(type):
         """
         return re.compile(*args)
 
-
+    def __subclasscheck__(cls: Pattern, subclass: object) -> Union[NotImplementedType, bool]:
+        if not hasattr(subclass, "__str__"):
+            return NotImplemented
+        return bool(cls.match(subclass))
 
 class RegEx(metaclass=_RegExMeta):
     """A class for functional and passive regex typing.

@@ -2,7 +2,9 @@ from __future__ import annotations
 
 
 from re import Pattern, RegexFlag
+from types import NotImplementedType
 from typing import (Generic,
+                    Union,
                     TypeVar,
                     Tuple,
                     overload)
@@ -26,6 +28,12 @@ class _RegExMeta(type):
         cls,
         pattern: Tuple[_RE, _RF],
     ) -> RegEx[_RE, _RF]: ...
+
+    def __subclasscheck__(cls: Pattern, subclass: object) -> Union[NotImplementedType, bool]:
+        if not hasattr(subclass, "__str__"):
+            return NotImplemented
+        match_ = cls.match(str(subclass))
+        return bool(match_)
 
 
 class RegEx(Pattern[_RE_co, _RF_co], Generic[_RE_co, _RF_co], metaclass=_RegExMeta):

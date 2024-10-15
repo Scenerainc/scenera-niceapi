@@ -40,7 +40,7 @@ __all__ = (
 
 if TYPE_CHECKING:
     from re import Match
-    from typing import Protocol, TypeVar, List
+    from typing import Protocol, TypeVar, Union, List
 
     from typing_extensions import (
         LiteralString,
@@ -85,6 +85,12 @@ if TYPE_CHECKING:
         Example["1.0",  "1.1"]
     ]
 
+    __all__ += ("NodeID"
+                "PortID",
+                "EndPointID",
+                "SceneModeID",
+                "ScheduleTime",
+                "StringVersion",)
 
 ZERO_FLAG = RegexFlag(0)
 
@@ -240,14 +246,33 @@ class NetworkEndPointSpecifier(TypedDict, total=False):
 
 class SceneModeInput(TypedDict, total=False):
     """Represents the input configuration for a scene mode,
-    including port ID and optional scene mark input."""
+    including port ID and optional scene mark input.
+    
+    NOTE Conflict! the datapipeline has this in the annotations
+    but this not what is received by the 'bridge'"""
     PortID: ReadOnly[
         Required[
             PortID
         ]
     ]
-    SceneMarkInput: ReadOnly[NotRequired[NetworkEndPointSpecifier]]
+    EndPoint: ReadOnly[NotRequired[NetworkEndPointSpecifier]]
 
+class InferenceEngine(TypedDict, total=False):
+    Type: ReadOnly[NotRequired[str]]
+    Version: ReadOnly[NotRequired[StringVersion]]
+    ClassList: ReadOnly[NotRequired[List[str]]]
+
+class VideoEndpoint(TypedDict, total=True):
+    VideoURI: ReadOnly[NotRequired[str]]
+
+class ActualSceneModeInput(TypedDict, total=False):
+    Type: ReadOnly[NotRequired[Literal["Video"]]]
+    Active: ReadOnly[NotRequired[bool]]
+    InferenceEngine: ReadOnly[NotRequired[InferenceEngine]]
+    DropFrameInterval: ReadOnly[NotRequired[int]]
+    VideoEndPoint: ReadOnly[Required[VideoEndpoint]]
+    InputFrameRate: ReadOnly[NotRequired[int]]
+    Resolution: ReadOnly[NotRequired[Resolution]]
 
 class SceneModeOutput(TypedDict, total=False):
     """Represents the output configuration for a scene mode,
@@ -292,7 +317,7 @@ class ROICoord(TypedDict, total=False):
 class AnalysisRegion(TypedDict, total=False):
     """Represents an analysis region, including the ROI type
     and optional list of ROI coordinates."""
-    ROITypeEnum: ReadOnly[NotRequired[ROITypeEnum]]
+    ROIType: ReadOnly[NotRequired[ROITypeEnum]]
     ROICoords: ReadOnly[NotRequired[List[ROICoord]]]
 
 
@@ -366,8 +391,8 @@ class Filters(TypedDict, total=False):
 class MinimumSceneDataItem(TypedDict, total=False):
     """Specifies a minimum scene data item, including count,
     data type, and an optional requirement flag."""
-    Count: ReadOnly[Required[int]]
     DataType: ReadOnly[Required[SceneDataType]]
+    Count: ReadOnly[Required[int]]
     Required: ReadOnly[NotRequired[bool]]
 
 
@@ -517,6 +542,6 @@ class SceneMode(TypedDict, total=False):
     SceneModeID: ReadOnly[Required[SceneModeID]]
     Mode: ReadOnly[NotRequired[Mode]]
     Storage: ReadOnly[NotRequired[Storage]]
-    Inputs: ReadOnly[NotRequired[List[SceneModeInput]]]
+    Inputs: ReadOnly[NotRequired[List[Union[SceneModeInput, ActualSceneModeInput]]]]
     Outputs: ReadOnly[NotRequired[List[SceneModeOutput]]]
     Transducers: ReadOnly[NotRequired[List[Transducer]]]
