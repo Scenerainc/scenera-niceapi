@@ -48,7 +48,7 @@ class NodeEnum(IntEnum, metaclass=NodeEnumMeta):
     """Node enum"""
 
     def __format__(self, format_spec: str):
-        return super(int, self).__format__(format_spec or "04x")
+        return int(self).__format__(format_spec or "04x")
 
     @classmethod
     def generate(
