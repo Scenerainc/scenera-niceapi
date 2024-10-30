@@ -6,7 +6,7 @@ import json
 import os
 import tempfile
 import traceback
-from datetime import datetime
+from datetime import datetime, timezone
 from logging import (
     INFO,
     FileHandler,
@@ -125,11 +125,15 @@ class _TracebackOnException:
 
 
 def _datetime_utcnow() -> str:
-    return datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+    return datetime.now(tz=timezone.utc)               \
+                   .isoformat(timespec='milliseconds') \
+                   .replace("+00:00", "Z")
 
 
 def _datetime_decode(text: str) -> datetime:
-    return datetime.strptime(text, "%Y-%m-%dT%H:%M:%S.%fZ")
+    iso_string = text.upper().replace("Z", "+00:00")
+    return datetime.fromisoformat(iso_string)          \
+                   .astimezone(timezone.utc)
 
 
 def _base64url_decode(b64url: str) -> bytes:
