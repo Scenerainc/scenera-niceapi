@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-
-from re import Pattern, RegexFlag
+from re import Match
 from types import NotImplementedType
 from typing import (Generic,
+                    Optional,
                     Union,
                     TypeVar,
-                    Tuple,
-                    overload)
+                    Tuple,)
 
 from typing_extensions import LiteralString
 
@@ -16,25 +15,23 @@ __all__ = (
     "_RegExMeta",
 )
 
-_RE = TypeVar("T", bound=LiteralString)
-_RF = TypeVar("F", RegexFlag, int)
-_RE_co = TypeVar("_RE_co", covariant=True)
-_RF_co = TypeVar("_RF_co", bound=int, covariant=True)
+T = TypeVar("T", bound=str)
 
+_T_co = TypeVar("_T_co", bound=LiteralString, covariant=True)
 
 class _RegExMeta(type):
-    @overload
     def __getitem__(
         cls,
-        pattern: Tuple[_RE, _RF],
-    ) -> RegEx[_RE, _RF]: ...
+        pattern: Tuple[_T_co],
+    ) -> RegEx[_T_co]: ...
 
-    def __subclasscheck__(cls: Pattern, subclass: object) -> Union[NotImplementedType, bool]:
+    def __subclasscheck__(cls, subclass: object) -> Union[NotImplementedType, bool]:
         if not hasattr(subclass, "__str__"):
             return NotImplemented
-        match_ = cls.match(str(subclass))
+        match_ = cls.match(str(subclass)) # type: ignore
         return bool(match_)
 
 
-class RegEx(Pattern[_RE_co, _RF_co], Generic[_RE_co, _RF_co], metaclass=_RegExMeta):
-    ...
+class RegEx(Generic[_T_co], metaclass=_RegExMeta):
+    def match(self, *match_args, **match_kwarch) -> Optional[Match[_T_co]]:
+        ...

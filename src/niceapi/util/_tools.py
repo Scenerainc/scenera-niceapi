@@ -22,11 +22,8 @@ from typing import (
     Any,
     Dict,
     Generator,
-    Iterable,
     List,
-    Mapping,
     Optional,
-    SupportsIndex,
     Type,
     Union,
 )
@@ -41,32 +38,6 @@ if TYPE_CHECKING:
 LOG_FORMAT: str = (
     "%(asctime)s %(name)s:%(lineno)s %(funcName)s [%(levelname)s]: %(message)s"
 )
-
-
-def _json_key(key: Union[str, SupportsIndex, T]) -> Union[str, T]:
-    if isinstance(key, str) or hasattr(key, "__str__"):
-        key: str
-        return str(key)
-    if hasattr(key, "__index__"):
-        key: SupportsIndex
-        return hex(key)
-    key: T
-    return key
-
-
-def _json_encoder_default(
-    obj: Any,
-    /,
-) -> Any:
-    if obj is None or isinstance(obj, (str, int, float, bool)):
-        return obj
-    if hasattr(obj, "__index__"):
-        return int(obj)
-    if isinstance(obj, Mapping):
-        return {_json_key(k): _json_encoder_default(v) for k, v, in obj}
-    if isinstance(obj, Iterable):
-        return [_json_encoder_default(i) for i in obj]
-    return obj
 
 
 def _logger_setup(

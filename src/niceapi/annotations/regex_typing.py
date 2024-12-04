@@ -10,14 +10,14 @@ __all__ = (
 
 if TYPE_CHECKING:
     from types  import NotImplementedType
-    from typing import Tuple, Union
+    from typing import Union
     from typing_extensions import Pattern
 
 class _RegExMeta(type):
     """RegEx Type MetaClass, can be matched against"""
     def __getitem__(
         cls,
-        args: Union[Pattern, Tuple[Pattern, int]],
+        pattern: Pattern,
     ) -> Pattern:
         """Compile a regular expression pattern.
 
@@ -42,12 +42,12 @@ class _RegExMeta(type):
             >>> compiled_with_flags.match("ABC123")
             <re.Match object; span=(3, 6), match='123'>
         """
-        return re.compile(*args)
+        return re.compile(pattern)
 
-    def __subclasscheck__(cls: Pattern, subclass: object) -> Union[NotImplementedType, bool]:
+    def __subclasscheck__(cls, subclass: object) -> Union[NotImplementedType, bool]:
         if not hasattr(subclass, "__str__"):
             return NotImplemented
-        return bool(cls.match(subclass))
+        return bool(cls.match(subclass)) # type: ignore
 
 class RegEx(metaclass=_RegExMeta):
     """A class for functional and passive regex typing.

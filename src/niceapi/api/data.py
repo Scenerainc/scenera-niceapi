@@ -1,28 +1,57 @@
+from __future__ import annotations
+
 from logging import INFO, Logger, getLogger
-from typing import Any, Dict
+from typing import TYPE_CHECKING, Any
 
+from ..util.json_utils.base   import JSONMapping
 from ..util._tools import _logger_setup
-
-DICT_T = Dict[str, Any]
 
 logger: Logger = getLogger(__name__)
 _logger_setup(logger, INFO)
 
+if TYPE_CHECKING:
+    from typing import Iterator, Literal, Union, Mapping, Dict
 
-class DataSection:
+    from .mark import SceneMark
+    from ..annotations import (DataSection_DICT_T, SceneMark_DICT_T, MediaFormat_T,
+                               SceneMarkID,)
+
+    DICT_T = Dict[str, Any]
+
+    __SceneMarkMapping = Union[
+        SceneMark_DICT_T,
+        Dict[Union[Literal["SceneMarkID"], str], Union[SceneMarkID, str]],
+        Mapping[Union[Literal["SceneMarkID"], str], Union[SceneMarkID, str]],
+    ]
+
+
+class DataSection(JSONMapping[str, Any]):
     """DataSection class
 
     use ApiRequest.new_scene_data() for instantiation
     """
 
+    if TYPE_CHECKING:
+        _json: Dict[str, Any]
+        _legacy_library_quirks: bool
+
+    def __len__(self) -> int:
+        return len(self._json)
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(self._json)
+
+    def __getitem__(self, key: str) -> Any:
+        return self._json[key]
+
     def __init__(
         self,
-        version: str,
-        data_id: str,
-        section: int,
-        last_section: int,
+        version:        str,
+        data_id:        str,
+        section:        int,
+        last_section:   int,
         section_base64: str,
-        media_format: str,
+        media_format:   MediaFormat_T,
     ) -> None:
         """Constructor
 
@@ -56,9 +85,9 @@ class DataSection:
         }
 
     @property
-    def json(self) -> DICT_T:
+    def json(self) -> DataSection_DICT_T:
         """dict: get JSON Object of DataSection"""
-        return self._json
+        return self._json # type: ignore
 
     def set_file_type(self, file_type: str) -> None:
         """Set DataSection["FileType"]
@@ -130,6 +159,34 @@ class DataSection:
         """
         self._json["OriginalFileHash"] = original_file_hash
 
+    def add_related_scenemark(self,
+                              scenemark: Union[__SceneMarkMapping,
+                                               SceneMark,],) -> None:
+        """Append DataSection["RelatedSceneMarks"]
+
+        Parameters
+        ----------
+        scenemark : SceneMark | DICT_T
+            an object containing the string 'SceneMarkID'
+
+        Returns
+        -------
+        None
+        """
+        mapping = getattr(scenemark, "json", scenemark)
+        scenemark_id = mapping.get("SceneMarkID", None)
+
+        if scenemark_id is None:
+            raise ValueError(
+                f"Cannot intepret {scenemark}, expects either "
+                + "the scenemark id, scenemark object "
+                + "or SceneMark JSON dictionary"
+        )
+
+        if "RelatedSceneMarks" not in self._json:
+            self._json["RelatedSceneMarks"] = []
+        self._json["RelatedSceneMarks"].append(scenemark_id)
+
     def set_encryption_on(self, encryption_on: bool) -> None:
         """Set DataSection["EncryptionOn"]
 
@@ -143,3 +200,4 @@ class DataSection:
         None
         """
         self._json["EncryptionOn"] = encryption_on
+

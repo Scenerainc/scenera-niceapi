@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from re import RegexFlag
 from typing import TYPE_CHECKING, TypedDict, Literal
 
 from .regex_typing import RegEx
@@ -8,6 +7,7 @@ from .regex_typing import RegEx
 __all__ = (
     "SceneMode",
     "WebAPIScheme",
+    "SceneModeConfig",
     "NetworkEndPointSpecifier",
     "SceneModeInput",
     "SceneModeOutput",
@@ -21,7 +21,6 @@ __all__ = (
     "PrivacyServerEndPoint",
     "Encryption",
     "Scheduling",
-    "SceneDataType",
     "WebAPIProcotol",
     "SchedulingType",
     "Blurable",
@@ -35,12 +34,11 @@ __all__ = (
     "PortIDRegex",
     "SceneModeIDRegex",
     "EndPointIDRegex",
-    "ZERO_FLAG",
 )
 
 if TYPE_CHECKING:
     from re import Match
-    from typing import Protocol, TypeVar, Union, List
+    from typing import Generic, TypeVar, Union, List
 
     from typing_extensions import (
         LiteralString,
@@ -49,12 +47,13 @@ if TYPE_CHECKING:
         Required,
     )
 
-    Example = Literal
+    from .common import SceneDataType_T
+
 
     RegExpr_T = TypeVar("T", bound=RegEx)
     Example_T = TypeVar("T", bound=LiteralString)
 
-    class StringSpecification(str, Protocol[RegExpr_T, Example_T]):
+    class StringSpecification(str, Generic[RegExpr_T, Example_T]):
         """Example value for a given field"""
 
     NodeID = StringSpecification[
@@ -63,75 +62,38 @@ if TYPE_CHECKING:
     ]
     PortID = StringSpecification[
         Match["PortIDRegex"],
-        Example["0001", "7fff" "ffff",],
+        Literal["0001", "7fff" "ffff",],
     ]
     EndPointID = StringSpecification[
         Match["EndPointIDRegex"],
-        Example["0000000f-0001-0001-0001-000000000001"],
+        Literal["0000000f-0001-0001-0001-000000000001"],
     ]
 
     SceneModeID  = StringSpecification[
         Match["SceneModeIDRegex"],
-        Example["0000000f-0001-0001-0001-000000000001"],
+        Literal["0000000f-0001-0001-0001-000000000001"],
     ]
 
     ScheduleTime  = StringSpecification[
         Match["ScheduleTimeRegex"],
-        Example["09:00", "21:00"],
+        Literal["09:00", "21:00"],
     ]
 
     StringVersion = StringSpecification[
         Match["StringVersionRegex"],
-        Example["1.0",  "1.1"]
+        Literal["1.0",  "1.1"]
     ]
 
-    __all__ += ("NodeID"
-                "PortID",
-                "EndPointID",
-                "SceneModeID",
-                "ScheduleTime",
-                "StringVersion",)
 
-ZERO_FLAG = RegexFlag(0)
+StringVersionRegex = RegEx[r"^[1-9]+\.[0-9]+$"]
 
-StringVersionRegex = RegEx[r"^[1-9]+\.[0-9]+$", ZERO_FLAG],
-
-NodeIDRegex = PortIDRegex = RegEx[r"^[0-9a-f]{4}$", ZERO_FLAG]
+NodeIDRegex = PortIDRegex = RegEx[r"^[0-9a-f]{4}$"]
 
 EndPointIDRegex = SceneModeIDRegex = RegEx[
-    r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
-    ZERO_FLAG,
+    r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
 ]
 
-ScheduleTimeRegex = RegEx[r"^[0-9]{2}:[0-9]{2}$", ZERO_FLAG]
-
-SceneDataType = Literal[
-    "Thumbnail",
-    "RGBStill",
-    "IRStill",
-    "DepthStill",
-    "RGBStereoStill",
-    "ThermalStill",
-    "RGBVideo",
-    "IRVideo",
-    "DepthVideo",
-    "RGBStereoVideo",
-    "ThermalVideo",
-    "Audio",
-    "Temperature",
-    "Humidity",
-    "PIR",
-    "CarbonMonoxide",
-    "AudioTranscript",
-    "IRDetection",
-    "Pressure",
-    "Proximity",
-    "LiquidLevel",
-    "Acceleration",
-    "Rotation",
-    "Vector",
-    "Other",
-]
+ScheduleTimeRegex = RegEx[r"^[0-9]{2}:[0-9]{2}$"]
 
 WebAPIProcotol = Literal[
     "MQTT",
@@ -243,7 +205,7 @@ class NetworkEndPointSpecifier(TypedDict, total=False):
     ]
     Scheme: ReadOnly[NotRequired[List[WebAPIScheme]]]
 
-
+  
 class SceneModeInput(TypedDict, total=False):
     """Represents the input configuration for a scene mode,
     including port ID and optional scene mark input.
@@ -295,8 +257,8 @@ class Transducer(TypedDict, total=False):
 
 class Region(TypedDict, total=True):
     """Defines a region with X and Y coordinates."""
-    XCoord: ReadOnly[Required[float]]
-    YCoord: ReadOnly[Required[float]]
+    XCoord: Required[ReadOnly[float]]
+    YCoord: Required[ReadOnly[float]]
 
 
 class ROICoord(TypedDict, total=False):
@@ -391,7 +353,7 @@ class Filters(TypedDict, total=False):
 class MinimumSceneDataItem(TypedDict, total=False):
     """Specifies a minimum scene data item, including count,
     data type, and an optional requirement flag."""
-    DataType: ReadOnly[Required[SceneDataType]]
+    DataType: ReadOnly[Required[SceneDataType_T]]
     Count: ReadOnly[Required[int]]
     Required: ReadOnly[NotRequired[bool]]
 
@@ -446,7 +408,7 @@ class SceneModeConfig(TypedDict, total=False):
     AnalysisDescription: ReadOnly[NotRequired[str]]
     InferenceEngineVersion: ReadOnly[NotRequired[StringVersion]]
     AnalysisStage: ReadOnly[NotRequired[AnalysisStage]]
-    CustomAnalysisID: ReadOnly[NotRequired[Example["1"]]]
+    CustomAnalysisID: ReadOnly[NotRequired[Literal["1"]]]
     CustomAnalysisStage: ReadOnly[NotRequired[str,]]
     ExecuteOnPipeline: ReadOnly[NotRequired[bool]]
     LabelRefDataList: ReadOnly[NotRequired[List[LabelRefData]]]

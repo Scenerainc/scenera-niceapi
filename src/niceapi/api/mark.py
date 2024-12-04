@@ -1,27 +1,56 @@
+from __future__ import annotations
+
 from logging import INFO, Logger, getLogger
-from typing import Any, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any
 
+from .data import DataSection
+from ..util.json_utils.base import JSONMapping
 from ..util._tools import _logger_setup
-
-DICT_T = Dict[str, Any]
 
 
 logger: Logger = getLogger(__name__)
 _logger_setup(logger, INFO)
 
 
-class SceneMark:
+if TYPE_CHECKING:
+    from typing import Dict, List, Optional, Union, TypedDict, Mapping
+    from typing_extensions import Required, NotRequired
+    
+    from ..annotations import (SceneMark_DICT_T, SceneData_DICT_T, AnalysisItem_DICT_T,
+                               DetectedObject_DICT_T, AnalysisProcessingStatus_T,
+                               UploadStatus_T, MediaFormat_T, SceneMarkID,
+                               SceneDataID, DeviceNodeID, NetworkEndPointSpecifier)
+
+    DICT_T = Union[Dict[str, Any],
+                   Mapping[str, Any],]
+
+
+    EP_T = TypedDict("EP_T", {"APIVersion": Required[str],
+                                "EndPointID": Required[str],
+                                "X.509Certificate": NotRequired[List[str]],
+                                "AccessToken": NotRequired[str],})
+
+class SceneMark(JSONMapping[str, Any]):
     """SceneMark class
 
     use ApiRequest.new_scene_mark() for instantiation
     """
 
+    if TYPE_CHECKING:
+        _json: Dict[str, Any]
+
+    __slots__ = ("_json",)
+
+    @property
+    def scenemark_id(self) -> str:
+        return str(self._json["SceneMarkID"])
+
     def __init__(
         self,
-        version: str,
-        time_stamp: str,
-        scene_mark_id: str,
-        node_id: str,
+        version:       str,
+        time_stamp:    str,
+        scene_mark_id: SceneMarkID,
+        node_id:       DeviceNodeID,
     ) -> None:
         """Constructor
 
@@ -40,7 +69,7 @@ class SceneMark:
             value of SceneMark["NodeID"]
 
         """
-        self._json: DICT_T = {
+        self._json = {
             "Version": version,
             "TimeStamp": time_stamp,
             "SceneMarkID": scene_mark_id,
@@ -48,11 +77,11 @@ class SceneMark:
         }
 
     @property
-    def json(self) -> DICT_T:
+    def json(self) -> SceneMark_DICT_T:
         """dict: get JSON Object of SceneMark"""
-        return self._json
+        return self._json # type: ignore
 
-    class DetectedObject:
+    class DetectedObject(JSONMapping[str, Any]):
         """SceneMark["AnalysisList"][N]["DetectedObjects"] element class
 
         Examples
@@ -73,14 +102,18 @@ class SceneMark:
 
             * analysis.add_detected_object(detected)
         """
+        if TYPE_CHECKING:
+            _json: Dict[str, Any]
+
+        __slots__ = ("_json",)
 
         def __init__(self) -> None:
-            self._json: DICT_T = dict()
+            self._json = dict()
 
         @property
-        def json(self) -> DICT_T:
+        def json(self) -> DetectedObject_DICT_T:
             """dict: get JSON Object of SceneMark.DetectedObject"""
-            return self._json
+            return self._json # type: ignore
 
         def set_version_number(self, version_number: int) -> None:
             """Set DetectedObject["VersionNumber"]
@@ -194,9 +227,9 @@ class SceneMark:
 
         def add_attribute(
             self,
-            attribute: Optional[str] = None,
-            probability: Optional[float] = None,
-            algorithm_id: Optional[str] = None,
+            attribute:    Optional[str]   = None,
+            probability:  Optional[float] = None,
+            algorithm_id: Optional[str]   = None,
         ) -> None:
             """Add DetectedObject["Attributes"] element
 
@@ -215,7 +248,7 @@ class SceneMark:
             -------
             None
             """
-            obj: DICT_T = dict()
+            obj: Dict[str, Any] = dict()
             if attribute:
                 obj["Attribute"] = attribute
             if probability:
@@ -256,7 +289,7 @@ class SceneMark:
             self._json["BoundingBox"] = {
                 "XCoordinate": x,
                 "YCoordinate": y,
-                "Width": width,
+                "Width":   width,
                 "Height": height,
             }
 
@@ -276,7 +309,11 @@ class SceneMark:
             """
             self._json["ThumbnailSceneDataID"] = thumbnail_scene_data_id
 
-    class Analysis:
+        def add_related_scenedata(self, scenedata_id: SceneDataID):
+            self._json["RelatedSceneData"] = scenedata_id
+
+
+    class Analysis(JSONMapping[str, Any]):
         """SceneMark["AnalysisList"] element class
 
         Examples
@@ -297,13 +334,18 @@ class SceneMark:
             * scene_mark.add_analysis(analysis)
         """
 
+        if TYPE_CHECKING:
+            _json: Dict[str, Any]
+
+        __slots__ = ("_json",)
+
         def __init__(self) -> None:
-            self._json: DICT_T = dict()
+            self._json = dict()
 
         @property
-        def json(self) -> DICT_T:
+        def json(self) -> AnalysisItem_DICT_T:
             """dict: get JSON Object of SceneMark.Analysis"""
-            return self._json
+            return self._json # type: ignore
 
         def set_version_number(self, version_number: int) -> None:
             """Set Analysis["VersionNumber"]
@@ -375,13 +417,13 @@ class SceneMark:
             """
             self._json["AnalysisDescription"] = analysis_description
 
-        def set_processing_status(self, processing_status: str) -> None:
+        def set_processing_status(self, processing_status: AnalysisProcessingStatus_T) -> None:
             """Set Analysis["ProcessingStatus"]
 
             Parameters
             ----------
             processing_status : str
-                "Motion", "Detect", "Recognize", or "Characterize"
+                "Motion", "Detected", "Recognized", or "Characterized"
 
             Returns
             -------
@@ -418,7 +460,7 @@ class SceneMark:
             else:
                 self._json["DetectedObjects"] = [detected_object.json]
 
-    class SceneData:
+    class SceneData(JSONMapping[str, Any]):
         """SceneMark["SceneDataList"] element class
 
         Examples
@@ -438,9 +480,16 @@ class SceneMark:
 
             * scene_mark.add_scene_data(scene_data)
         """
+        if TYPE_CHECKING:
+            _json:          Dict[str, Any]
+            _parent:        SceneMark
+
+        __slots__ = ("_json",
+                     "_parent",)
 
         def __init__(
             self,
+            parent: "SceneMark",
             scene_data_id: str,
             time_stamp: str,
             encryption: bool,
@@ -462,17 +511,33 @@ class SceneMark:
             -------
             None
             """
-            self._json: DICT_T = {
+            self._parent        = parent
+            self._json   = {
                 "SceneDataID": scene_data_id,
                 "TimeStamp": time_stamp,
                 "Encryption": {"EncryptionOn": encryption},
             }
 
         @property
-        def json(self) -> DICT_T:
+        def json(self) -> SceneData_DICT_T:
             """dict: get JSON Object of SceneMark.SceneData"""
-            return self._json
+            return self._json # type: ignore
         
+        def new_data_section(self,
+                version: str,
+                section: int,
+                last_section: int,
+                section_base64: str,
+            ) -> DataSection:
+            """Gets a new data section based on the parent scenedata object """
+            data_section = DataSection(version,
+                                       self.json["SceneDataID"],
+                                       section,
+                                       last_section,
+                                       section_base64,
+                                       self.json["MediaFormat"])
+            return data_section
+
         def set_version_number(self, version_number: int) -> None:
             """Set SceneData["VersionNumber"]
 
@@ -545,7 +610,7 @@ class SceneMark:
             """
             self._json["DataType"] = data_type
 
-        def set_status(self, status: str) -> None:
+        def set_status(self, status: UploadStatus_T) -> None:
             """Set SceneData["Status"]
 
             Parameters
@@ -559,7 +624,7 @@ class SceneMark:
             """
             self._json["Status"] = status
 
-        def set_media_format(self, media_format: str) -> None:
+        def set_media_format(self, media_format: MediaFormat_T) -> None:
             """Set SceneData["MediaFormat"]
 
             Parameters
@@ -667,7 +732,7 @@ class SceneMark:
             end_point_id: str,
             certificate: Optional[List[str]] = None,
             access_token: Optional[str] = None,
-        ) -> DICT_T:
+        ) -> EP_T:
             """Generate JSON Object of AppEndPoint
 
             Parameters
@@ -689,7 +754,7 @@ class SceneMark:
             dict
                 JSON Object of AppEndPoint
             """
-            json_obj: DICT_T = {
+            json_obj = {
                 "APIVersion": version,
                 "EndPointID": end_point_id,
             }
@@ -701,12 +766,12 @@ class SceneMark:
 
         def new_net_end_point(
             self,
-            version: str,
+            version:      str,
             end_point_id: str,
-            scheme: List[DICT_T],
+            scheme:  List[DICT_T],
             node_id: Optional[str] = None,
             port_id: Optional[str] = None,
-        ) -> DICT_T:
+        ) -> NetworkEndPointSpecifier:
             """Generate JSON Object of NetEndPoint
 
             Parameters
@@ -731,7 +796,7 @@ class SceneMark:
             dict
                 JSON Object of NetEndPoint
             """
-            json_obj = {
+            json_obj: NetworkEndPointSpecifier = {
                 "APIVersion": version,
                 "EndPointID": end_point_id,
                 "Scheme": scheme,
@@ -811,8 +876,7 @@ class SceneMark:
             """
             self._json["Encryption"] = encryption
 
-    """End of Internal Class Definition
-    """
+    ## End of Internal Class Definition ##
 
     def set_destination_id(self, destination_id: str) -> None:
         """Set SceneMark["DestinationID"]
@@ -984,7 +1048,7 @@ class SceneMark:
         SceneMark.SceneData
             new SceneMark.SceneData
         """
-        return SceneMark.SceneData(scene_data_id, time_stamp, encryption)
+        return SceneMark.SceneData(self, scene_data_id, time_stamp, encryption)
 
     def add_scene_data(self, scene_data: SceneData) -> None:
         """Add an element to SceneMark["SceneDataList"]
@@ -998,7 +1062,6 @@ class SceneMark:
         -------
         None
         """
-        if "SceneDataList" in self._json:
-            self._json["SceneDataList"].append(scene_data.json)
-        else:
-            self._json["SceneDataList"] = [scene_data.json]
+        if "SceneDataList" not in self._json:
+            self._json["SceneDataList"] = []
+        self._json["SceneDataList"].append(scene_data)

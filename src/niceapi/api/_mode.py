@@ -1,13 +1,16 @@
-from logging import INFO, Logger, getLogger
-from typing import Any, Dict, List, Optional
+from __future__ import annotations
 
-from ..util._tools import _has_required_keys, _is_list, _logger_setup
+from logging import INFO, Logger, getLogger
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
+
+from ..util.json_utils.base import JSONMapping
 from .common import (
     WebAPIScheme,
     _is_valid_app_endpoint,
     _is_valid_endpoint,
     _is_valid_net_endpoint,
 )
+from ..util._tools import _has_required_keys, _is_list, _logger_setup
 
 DICT_T = Dict[str, Any]
 
@@ -252,11 +255,30 @@ class _SceneMarkOutput:
         self._encryption = obj
 
 
-#
 
-
-class _SceneMode:
+class _SceneMode(JSONMapping[Any]):
     _REQUIRED_KEYS = ["Version", "SceneModeID", "NodeID"]
+
+    if TYPE_CHECKING:
+        _json:             Optional[DICT_T]
+        _video_url:        Optional[str]
+        _input_encryption: Optional[_Encryption]
+        _image_config:     Optional[_OutputConfiguration]
+        _video_config:     Optional[_OutputConfiguration]
+        _mark_inputs:      List[DICT_T]
+        _mark_outputs:     List[DICT_T]
+        _ref_encryptions:  List[_Encryption]
+        _mode_encryptions: List[_Encryption]
+
+    __slots__ = ("_json",
+                 "_video_url",
+                 "_input_encryption",
+                 "_image_config",
+                 "_video_config",
+                 "_mark_inputs",
+                 "_mark_outputs",
+                 "_ref_encryptions",
+                 "_mode_encryptions",)
 
     def __init__(self) -> None:
         self._initialize()
@@ -458,7 +480,7 @@ class _SceneMode:
             self._json = obj
         except Exception as e:
             logger.error(e)
-            self._initialize()
+            raise
 
     @property
     def video_url(self) -> Optional[str]:
@@ -485,13 +507,13 @@ class _SceneMode:
         return self._mark_outputs
 
     @property
-    def ref_encryptions(self) -> Optional[List[_Encryption]]:
+    def ref_encryptions(self) -> List[_Encryption]:
         if self._ref_encryptions:
             return self._ref_encryptions
         return None
 
     @property
-    def mode_encryptions(self) -> Optional[List[_Encryption]]:
+    def mode_encryptions(self) -> List[_Encryption]:
         if self._mode_encryptions:
             return self._mode_encryptions
         return None

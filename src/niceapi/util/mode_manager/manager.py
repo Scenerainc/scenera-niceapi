@@ -4,7 +4,7 @@ import logging
 from contextlib import contextmanager
 from threading import Lock, Thread
 from time import sleep
-from typing import TYPE_CHECKING, Mapping, final
+from typing import TYPE_CHECKING, Mapping, Optional, final
 
 from .._tools import _logger_setup
 from ._health_check import HealthChecker
@@ -22,7 +22,6 @@ if TYPE_CHECKING:
         Iterable,
         Literal,
         MutableMapping,
-        Optional,
         ParamSpec,
         SupportsIndex,
         Type,
@@ -49,7 +48,7 @@ _logger_setup(logger, logging.DEBUG)
 
 
 @final
-class ModeManager(Mapping["DeviceNode", "SceneMode"]):
+class ModeManager(Mapping["DeviceNode", Optional["SceneMode"]]):
     __slots__ = (
         "__nice_api",
         "__data",
@@ -57,6 +56,7 @@ class ModeManager(Mapping["DeviceNode", "SceneMode"]):
         "__exit",
         "__task",
         "__lock",
+        "_debug",
     )
 
     if TYPE_CHECKING:
@@ -99,6 +99,7 @@ class ModeManager(Mapping["DeviceNode", "SceneMode"]):
     ):
         if device_nodes is None:
             device_nodes = DeviceNodeBase.generate(DEVICE_NODE_COUNT)
+        self._debug = False  # increases logging verbosity
         self.__nice_api = api
         self.__lock = lock
         self.__data = container or {}
@@ -165,12 +166,13 @@ class ModeManager(Mapping["DeviceNode", "SceneMode"]):
                 sleep(REQUEST_SLEEP)
         logger.debug("Mode thread finished")
 
-    def _fetch(self, __node_index: DeviceNode) -> bool:
+    def _fetch(self, __node_index: DeviceNode) -> None:
         node = self.nodes[__node_index]
 
         try:
             status, _mode = self.nice_api.get_scene_mode(f"{node:04x}")
-            logger.debug(_mode)
+            if self._debug:
+                logger.debug(_mode)
             mode: SceneMode = _mode or {}
         except TimeoutError as _e:
             # NOTE (the following to be confirmed)
@@ -188,6 +190,7 @@ class ModeManager(Mapping["DeviceNode", "SceneMode"]):
             if not self.healthy:
                 logger.warning("Api unhealthy, skipping: %04X", node)
                 logger.debug("Health: %s", self.healthy)
+                return
             logger.debug(
                 "requested node: '%04x' does not appear to be configured", node
             )

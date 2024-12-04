@@ -1,16 +1,25 @@
+from __future__ import annotations
+
 import copy
 import json
 import os
 from datetime import datetime
 
-# from datetime import datetime
 from logging import INFO, Logger, getLogger
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
-
+from typing import (
+    TYPE_CHECKING,
+    cast,
+    Callable, 
+    Optional, 
+    Tuple,
+    Union,
+    Dict, 
+    List,
+    Any,
+)
 from ..cmf._request import _CMFRequest
 from ..cmf._response import _CMFResponse
 from ..crypto._utility import _get_random_hex, _to_pem
-from ..crypto.base import FAIL_T, SUCCESS_T
 from ..crypto.jose import Decrypt, Encrypt, Sign, Verify, _jwe_encrypt
 from ..io._webapi import _WebAPI
 from ..io.webapi_base import WebAPIBase
@@ -26,6 +35,7 @@ from ..util._tools import (
     _logging_time,
     _TracebackOnException,
 )
+from ..util.json_utils.encode import JSONEncoderDefault
 from ._api import _ApiComponent, _ApiID
 from ._mode import _Encryption, _SceneMode
 from .control import ControlObject
@@ -35,14 +45,39 @@ from .management import ManagementObject
 from .mark import SceneMark
 from .security import DeviceSecurityObject
 
-DICT_T = Dict[str, Any]
-NG_T = Tuple[FAIL_T, None]
-OK_T = Tuple[SUCCESS_T, Any]
-RESULT_T = Union[NG_T, OK_T]
-CERTS_T = Optional[List[str]]
-_SETTER_FUNC_T = Callable[
-    [_Encryption], Tuple[OPT_STR_T, OPT_STR_T, OPT_STR_T]
-]
+if TYPE_CHECKING:
+    from typing import Literal, TypeVar, SupportsIndex
+    from ..annotations import (
+        SceneMode,
+        SceneData_DICT_T,
+        DataSection_DICT_T,
+        SceneMark_DICT_T,
+        SceneMarkID,
+        DeviceNodeID,
+    )
+    T = TypeVar("T", covariant=True)
+    DICT_T = Dict[str, Any]
+    OK_T = Tuple[Literal[True],  T]
+    FAIL_T = Tuple[Literal[False], None]
+    RESULT_T = Union[FAIL_T, OK_T[T]]
+    CERTS_T = Optional[List[str]]
+    _SETTER_FUNC_T = Callable[
+        [_Encryption], Tuple[OPT_STR_T, OPT_STR_T, OPT_STR_T]
+    ]
+
+    SCENEMODE_T   = Union[DICT_T, 
+                          SceneMode]
+    SCENEMARK_T   = Union[DICT_T,
+                          SceneMark,
+                          SceneMark_DICT_T]
+    SCENEDATA_T   = Union[DICT_T, 
+                          SceneMark.SceneData,
+                          SceneData_DICT_T,]
+    DATASECTION_T = Union[DICT_T,
+                          DataSection,
+                          DataSection_DICT_T]
+
+VERBOSE = True
 
 DUMP_MESSAGE = os.environ.get("DUMP_MESSAGE", "0") == "1"
 logger: Logger = getLogger(__name__)
@@ -55,6 +90,10 @@ TIME_LOG: bool = False
 SEC_CERT_FILE: str = "sec.perm"
 MNG_CERT_FILE: str = "mng.perm"
 
+_JSON_ENCODER_DEFAULT = JSONEncoderDefault(True)
+
+class Incorrect(Exception):
+    pass
 
 class ApiRequest:
     """API Request class to handle Device APIs."""
@@ -89,6 +128,11 @@ class ApiRequest:
     _ctrl_root_certs: CERTS_T = None
     _permanent_loaded: bool = False
     _permanent_path: str = "."
+    _legacy_library_quirks = False
+
+    @classmethod
+    def set_legacy_library_quirks(cls, __value: bool = False, /):
+        cls._legacy_library_quirks = __value
 
     @classmethod
     def _is_server_auth(cls) -> bool:
@@ -115,7 +159,7 @@ class ApiRequest:
         if certs:
             _file_update(
                 path=os.path.join(cls._permanent_path, SEC_CERT_FILE),
-                data=json.dumps(certs).encode(),
+                data=json.dumps(certs, default=_JSON_ENCODER_DEFAULT).encode(),
             )
         if not cls._permanent_loaded:
             with _TracebackOnException():
@@ -304,7 +348,7 @@ class ApiRequest:
             if certs:
                 _file_update(
                     path=os.path.join(cls._permanent_path, MNG_CERT_FILE),
-                    data=json.dumps(certs).encode(),
+                    data=json.dumps(certs, default=_JSON_ENCODER_DEFAULT).encode(),
                 )
             tls_root_certs = cls._create_tls_root_certs(
                 sec_root_certs=cls.security.allowed_tls_root_certificates,
@@ -375,7 +419,7 @@ class ApiRequest:
         return True
 
     @classmethod
-    def get_scene_mode(cls, node_id: str) -> RESULT_T:
+    def get_scene_mode(cls, node_id: Union[SupportsIndex, str]) -> RESULT_T[SCENEMODE_T]:
         """Send GetSceneMode API.
 
         SceneMode is returned if the API request was successful.
@@ -392,6 +436,8 @@ class ApiRequest:
         dict
             SceneMode JSON Object or None.
         """
+        if hasattr(node_id, "__index__"):
+            node_id = "%04x" % node_id
         with _logging_time(TIME_LOG, logger, "GetSceneMode"):
             api = _ApiComponent(_ApiID.GET_SCENE_MODE)
             # get values from DeviceSecurityObject & ControlObject
@@ -428,13 +474,13 @@ class ApiRequest:
                 node_id,
             )
             if not obj:
-                return False, None
+                return False, None,
             mode = _SceneMode()
             mode.json = obj
             if not mode.is_available:
                 logger.error("Invalid SceneMode")
                 return False, None
-            return True, obj
+            return True, obj,
 
     @classmethod
     def _register_key_id(
@@ -482,19 +528,6 @@ class ApiRequest:
                 if not _has_required_keys(encryption_key, ["k", "kid"]):
                     logger.error("Invalid SceneEncryptionKey")
                     return None
-            """
-            start = obj["StartDateTime"]
-            start = _datetime_decode(start)
-            end = obj["EndDateTime"]
-            end = _datetime_decode(end)
-            now = datetime.utcnow()
-            if now < start or end < now:
-                logger.error(
-                    f"Out of date! now:{now}, start:{start}, "
-                    f"end:{end}"
-                )
-                return None
-            """
         return obj
 
     @classmethod
@@ -522,7 +555,10 @@ class ApiRequest:
         return privacy
 
     @classmethod
-    def get_privacy_object(cls, scene_mode: DICT_T) -> RESULT_T:
+    def get_privacy_object(cls, scene_mode: DICT_T) -> Union[
+            OK_T[Dict[str, Any]],
+            FAIL_T,
+        ]:
         """Send GetPrivacyObject API.
 
         Get all Privacy Objects corresponding to the 'Encryption' in SceneMode.
@@ -586,7 +622,7 @@ class ApiRequest:
             return True, privacy
 
     @classmethod
-    def get_date_time_from_la(cls) -> RESULT_T:
+    def get_date_time_from_la(cls) -> RESULT_T[datetime]:
         """Send GetDateTime to NICE LA.
 
         DateTime is returned if the API request was successful.
@@ -631,7 +667,8 @@ class ApiRequest:
             return True, timestamp
 
     @classmethod
-    def get_date_time_from_as(cls) -> RESULT_T:
+    def get_date_time_from_as(cls) -> Union[OK_T[datetime],
+                                            FAIL_T]:
         """Send GetDateTime to NICE AS.
 
         DateTime is returned if the API request was successful.
@@ -677,7 +714,11 @@ class ApiRequest:
 
     @classmethod
     def new_scene_mark(
-        cls, version: str, time_stamp: str, scene_mark_id: str, node_id: str
+        cls,
+        version: str,
+        time_stamp: str,
+        scene_mark_id: Union[str, SceneMarkID],
+        node_id: Union[str, DeviceNodeID],
     ) -> SceneMark:
         """Generate new SceneMark.
 
@@ -700,15 +741,18 @@ class ApiRequest:
         SceneMark
             instance of SceneMark class
         """
+        if TYPE_CHECKING:
+            scene_mark_id = cast(SceneMarkID,  scene_mark_id)
+            node_id       = cast(DeviceNodeID, node_id)
         return SceneMark(version, time_stamp, scene_mark_id, node_id)
 
     @classmethod
     def set_scene_mark(
         cls,
-        scene_mode: DICT_T,
-        scene_mark: DICT_T,
+        scene_mode:   SCENEMODE_T,
+        scene_mark:   SCENEMARK_T,
         privacy_dict: Optional[DICT_T] = None,
-    ) -> RESULT_T:
+    ) -> RESULT_T[DICT_T]:
         """Send SceneMark to the SceneMarkOutputEndPoint
         specified in SceneMode Object.
 
@@ -730,7 +774,14 @@ class ApiRequest:
         dict
             JSON Object of the response. (empty for now)
         """
+        if TYPE_CHECKING:
+            scene_mark = cast(DICT_T, scene_mark)
+            scene_mode = cast(DICT_T, scene_mode)
+        
         with _logging_time(TIME_LOG, logger, "SetSceneMark"):
+            if cls._legacy_library_quirks:
+                from ..util.legacy_compat import _legacy_scenemark_quirks # pylint: disable=C0415
+                scene_mark = _legacy_scenemark_quirks(scene_mode=scene_mode, scene_mark=scene_mark,)
             # keep current SceneMode
             copied_scene_mode = copy.deepcopy(scene_mode)
             mode = _SceneMode()
@@ -764,7 +815,7 @@ class ApiRequest:
                     obj = None
                     try:
                         if not privacy_dict:
-                            raise Exception("no privacies parameter")
+                            raise Incorrect("no privacies parameter")
                         alg = output.encryption.mark_alg
                         enc = output.encryption.mark_enc
                         if alg != "A256KW" or enc != "A256GCM":
@@ -774,16 +825,18 @@ class ApiRequest:
                         key = privacy["SceneEncryptionKey"]
                         kid = key["kid"]
                         k = _base64url_decode(key["k"])
-                        dump = json.dumps(scene_mark).encode()
+                        dump = json.dumps(scene_mark, default=_JSON_ENCODER_DEFAULT).encode()
                         text = _jwe_encrypt(dump, alg, enc, kid, k)
                         if text is not None:
                             obj = cls._handle_text_data_request(
                                 api, dst, text, authority, bearer, node, port
                             )
-                    except Exception as e:
+                    except Exception as e: # pylint: disable=W0718
                         logger.error(e)
-
+                        return False, None,
                 else:
+                    if VERBOSE:
+                        logger.debug(json.dumps(scene_mark, indent=4, default=_JSON_ENCODER_DEFAULT))
                     obj = cls._handle_json_data_request(
                         api, dst, scene_mark, authority, bearer, node, port
                     )
@@ -844,9 +897,49 @@ class ApiRequest:
         )
 
     @classmethod
-    def set_scene_data_image(
-        cls, scene_mode: DICT_T, scene_data: DICT_T
-    ) -> RESULT_T:
+    def set_scene_data_section(cls,
+                               scene_mode: SCENEMODE_T,
+                               scene_data: DATASECTION_T,) -> RESULT_T[Dict[str, Any]]:
+        """Send SetSceneData.
+
+        Send the full image as the SceneData to the destination endpoint
+        based on their type under the MediaType key specified in SceneMode Object.
+
+        Parameters
+        ----------
+        scene_mode : Dict[str, Any] | niceapi.annotations.SceneMode
+            SceneMode JSON Object
+
+        scene_data : Dict[str, Any]  | niceapi.DataSection | niceapi.annotations.DataSection_DICT_T
+            DataSection JSON Object
+
+        Returns
+        -------
+        bool
+            True if successful.
+        dict
+            JSON Object of the response. (empty for now)
+        """
+        scene_mode = getattr(scene_mode, "json", scene_mode)
+        scene_data = getattr(scene_data, "json", scene_data)
+
+        if TYPE_CHECKING:
+            scene_mode = cast(Dict[str, Any], scene_mode)
+            scene_data = cast(Dict[str, Any], scene_data)
+
+        media_type = scene_data["MediaFormat"]
+
+        if media_type in ["JPEG",]:
+            return cls.set_scene_data_image(scene_mode, scene_data,)
+
+        if media_type in ["H.264", "H.265"]:
+            return cls.set_scene_data_video(scene_mode, scene_data,)
+        raise ValueError(f"Unable to deal with {media_type}")
+
+    @classmethod
+    def set_scene_data_image(cls,
+                             scene_mode: DICT_T,
+                             scene_data: DICT_T,) -> RESULT_T[Dict[str, Any]]:
         """Send SetSceneData(Image).
 
         Send the full image as the SceneData to the destination endpoint
@@ -867,7 +960,20 @@ class ApiRequest:
         dict
             JSON Object of the response. (empty for now)
         """
+
+        scene_mode = getattr(scene_mode, "json", scene_mode)
+        scene_data = getattr(scene_data, "json", scene_data)
+
+        if TYPE_CHECKING:
+            scene_mode = cast(Dict[str, Any], scene_mode)
+            scene_data = cast(Dict[str, Any], scene_data)
+
         with _logging_time(TIME_LOG, logger, "SetSceneData(Image)"):
+            if cls._legacy_library_quirks:
+                from ..util.legacy_compat import _legacy_datasection_quirks # pylint: disable=C0415
+                scene_data = _legacy_datasection_quirks(scene_mode,
+                                                        scene_data,)
+
             # keep current SceneMode
             copied_scene_mode = copy.deepcopy(scene_mode)
             mode = _SceneMode()
@@ -886,9 +992,10 @@ class ApiRequest:
                 return False, None
 
             if mode.image_config is None:
+                logger.warning("SceneMode missing a Image output")
                 return False, None
 
-            objs: DICT_T = dict()
+            objs: DICT_T = {}
             for destination in mode.image_config.destinations:
                 dst = destination.end_point_id
 
@@ -908,15 +1015,16 @@ class ApiRequest:
                     objs[dst] = obj
 
             if not objs:
+                logger.warning("None of the image destinations acknowledge the request")
                 return False, None
 
             dummy_dict: DICT_T = {}
             return True, dummy_dict
 
     @classmethod
-    def set_scene_data_video(
-        cls, scene_mode: DICT_T, scene_data: DICT_T
-    ) -> RESULT_T:
+    def set_scene_data_video(cls,
+                             scene_mode: DICT_T,
+                             scene_data: DICT_T,) -> RESULT_T[Dict[str, Any]]:
         """Send SetSceneData(Video).
 
         Send the video as the SceneData to the destination endpoint
@@ -938,6 +1046,11 @@ class ApiRequest:
             JSON Object of the response. (empty for now)
         """
         with _logging_time(TIME_LOG, logger, "SetSceneData(Video)"):
+            if cls._legacy_library_quirks:
+                from ..util.legacy_compat import _legacy_datasection_quirks # pylint: disable=C0415
+                scene_data = _legacy_datasection_quirks(scene_mode,
+                                                        scene_data,)
+
             # keep current SceneMode
             copied_scene_mode = copy.deepcopy(scene_mode)
             mode = _SceneMode()
@@ -956,9 +1069,10 @@ class ApiRequest:
                 return False, None
 
             if mode.video_config is None:
+                logger.warning("SceneMode missing a video output")
                 return False, None
 
-            objs: DICT_T = dict()
+            objs: DICT_T = {}
             for destination in mode.video_config.destinations:
                 dst = destination.end_point_id
 
@@ -1031,9 +1145,7 @@ class ApiRequest:
         """
         cls._permanent_path = path
 
-    """Private functions
-    """
-
+    ## Private Functions
     @classmethod
     def _handle_request_encryption(
         cls,
@@ -1052,9 +1164,9 @@ class ApiRequest:
             if DUMP_MESSAGE:
                 logger.info(
                     f"EncryptionPayload Request - \
-                        {json.dumps(payload, indent=2)}"
+                        {json.dumps(payload, indent=2, default=_JSON_ENCODER_DEFAULT)}"
                 )
-            plaintext = json.dumps(payload).encode()
+            plaintext = json.dumps(payload, default=_JSON_ENCODER_DEFAULT).encode()
             success, jwe = Encrypt(app, crt)(plaintext)
             if not success:
                 logger.error("failed to encrypt")
@@ -1063,15 +1175,15 @@ class ApiRequest:
 
         request = cmf.make_request(crt)
         if DUMP_MESSAGE:
-            logger.info(f"CMFRequest - {json.dumps(request, indent=2)}")
-        success, jws = cls._jws_sign(json.dumps(request).encode())
+            logger.info(f"CMFRequest - {json.dumps(request, indent=2, default=_JSON_ENCODER_DEFAULT)}")
+        success, jws = cls._jws_sign(json.dumps(request, default=_JSON_ENCODER_DEFAULT).encode())
         if not success:
             logger.error("failed to sign")
             return None
         if DUMP_MESSAGE:
             logger.info(
                 f"CMFContainer Request - \
-                    {json.dumps(cmf.wrap_jws(jws), indent=2)}"
+                    {json.dumps(cmf.wrap_jws(jws), indent=2, default=_JSON_ENCODER_DEFAULT)}"
             )
         return cmf.wrap_jws(jws)
 
@@ -1084,7 +1196,7 @@ class ApiRequest:
             return None
 
         if DUMP_MESSAGE:
-            logger.info(f"CMFContainer Response - {json.dumps(cmf, indent=2)}")
+            logger.info(f"CMFContainer Response - {json.dumps(cmf, indent=2, default=_JSON_ENCODER_DEFAULT)}")
         cmf_response = _CMFResponse()
         jws = cmf_response.unwrap_jws(cmf)
         if not jws:
@@ -1096,7 +1208,7 @@ class ApiRequest:
             return None
         response = json.loads(response)
         if DUMP_MESSAGE:
-            logger.info(f"CMFResponse - {json.dumps(response, indent=2)}")
+            logger.info(f"CMFResponse - {json.dumps(response, indent=2, default=_JSON_ENCODER_DEFAULT)}")
         cmf_response.json = response
         if not cmf_response.is_available:
             logger.error("Invalid CMFResponse")
@@ -1114,7 +1226,7 @@ class ApiRequest:
             if DUMP_MESSAGE:
                 logger.info(
                     f"EncryptionPayload Response - \
-                        {json.dumps(cmf_response.payload, indent=2)}"
+                        {json.dumps(cmf_response.payload, indent=2, default=_JSON_ENCODER_DEFAULT)}"
                 )
         except Exception as e:
             logger.error(e)
@@ -1144,7 +1256,7 @@ class ApiRequest:
         cmf.destination_end_point_id = app
         cmf.date_time_stamp = _datetime_utcnow()
         cmf.command_type = api.get_command_type(dst)
-        logger.debug(f"HEAD - {json.dumps(cmf.json, indent=2)}")
+        logger.debug(f"HEAD - {json.dumps(cmf.json, indent=2, default=_JSON_ENCODER_DEFAULT)}")
         payload_object = None
 
         cmf_container = cls._handle_request_encryption(
@@ -1203,11 +1315,11 @@ class ApiRequest:
         cmf.destination_end_point_id = app
         cmf.date_time_stamp = _datetime_utcnow()
         cmf.command_type = api.get_command_type(dst, node)
-        logger.debug(f"HEAD - {json.dumps(cmf.json, indent=2)}")
+        logger.debug(f"HEAD - {json.dumps(cmf.json, indent=2, default=_JSON_ENCODER_DEFAULT)}")
 
         # create payload
         payload_object = api.get_payload_node(node_id)
-        logger.debug(f"PAYLOAD - {json.dumps(payload_object, indent=2)}")
+        logger.debug(f"PAYLOAD - {json.dumps(payload_object, indent=2, default=_JSON_ENCODER_DEFAULT)}")
 
         cmf_container = cls._handle_request_encryption(
             app, crt, access_token, payload_object, cmf
@@ -1264,11 +1376,11 @@ class ApiRequest:
         cmf.destination_end_point_id = app
         cmf.date_time_stamp = _datetime_utcnow()
         cmf.command_type = api.get_command_type(dst, node)
-        logger.debug(f"HEAD - {json.dumps(cmf.json, indent=2)}")
+        logger.debug(f"HEAD - {json.dumps(cmf.json, indent=2, default=_JSON_ENCODER_DEFAULT)}")
 
         # create payload
         payload_object = api.get_payload_key(key)
-        logger.debug(f"PAYLOAD - {json.dumps(payload_object, indent=2)}")
+        logger.debug(f"PAYLOAD - {json.dumps(payload_object, indent=2, default=_JSON_ENCODER_DEFAULT)}")
 
         cmf_container = cls._handle_request_encryption(
             app, crt, access_token, payload_object, cmf
@@ -1323,13 +1435,13 @@ class ApiRequest:
         cmf.destination_end_point_id = app
         cmf.date_time_stamp = _datetime_utcnow()
         cmf.command_type = api.get_command_type(dst)
-        logger.debug(f"HEAD - {json.dumps(cmf.json, indent=2)}")
+        logger.debug(f"HEAD - {json.dumps(cmf.json, indent=2, default=_JSON_ENCODER_DEFAULT)}")
 
         random = _get_random_hex(64)
 
         # create payload
         payload_object = api.get_payload_random(dst, random)
-        logger.debug(f"PAYLOAD - {json.dumps(payload_object, indent=2)}")
+        logger.debug(f"PAYLOAD - {json.dumps(payload_object, indent=2, default=_JSON_ENCODER_DEFAULT)}")
 
         cmf_container = cls._handle_request_encryption(
             app, crt, access_token, payload_object, cmf

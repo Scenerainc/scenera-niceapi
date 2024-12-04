@@ -1,14 +1,24 @@
+from __future__ import annotations
+
 import json
 import threading
 from logging import DEBUG, Logger, getLogger
-from typing import Optional
+from typing import TYPE_CHECKING
 
 from ..util._tools import _logger_setup
-from .webapi_base import BODY_T, JSON_T, TLS_ROOT_CERTS_T, WebAPIBase
+from ..util.json_utils.encode import JSONEncoderDefault
+
+from .webapi_base import WebAPIBase
+
+if TYPE_CHECKING:
+    from typing import Optional, Union, Dict, Mapping, Any
+    from .webapi_base import BODY_T, JSON_T, TLS_ROOT_CERTS_T
+    from ..util.json_utils.encode import JSONEncodable
 
 logger: Logger = getLogger(__name__)
 _logger_setup(logger, DEBUG)
 
+JSON_ENCODER_DEFAULT = JSONEncoderDefault(type_overflow=True)
 
 def _get_webapi_default() -> WebAPIBase:
     # Import of _WebAPIDefault will fail if requests library is not installed
@@ -60,7 +70,7 @@ class _WebAPI:
     def post_json(
         cls,
         url: str,
-        body: JSON_T,
+        body: JSONEncodable,
         timeout: int = _TIMEOUT,
         token: Optional[str] = None,
         verify: bool = True,
@@ -72,7 +82,8 @@ class _WebAPI:
                 "Accept": "application/json",
                 "Content-Type": "application/json",
             }
-        data = json.dumps(body).encode()
+        data = json.dumps(body, default=JSON_ENCODER_DEFAULT).encode()
+
         if cls._semaphore is not None:
             with cls._semaphore:
                 response = cls._webapi.post(

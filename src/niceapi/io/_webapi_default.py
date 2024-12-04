@@ -125,9 +125,9 @@ class _WebAPIDefault(WebAPIBase):
                             response_json = {}
                         break
                     else:
-                        logger.info(new_response.text)
+                        logger.debug(new_response.text)
                 else:
-                    logger.info(response.text)
+                    logger.debug(response.text)
             except requests.exceptions.RequestException as e:
                 logger.error(f"RequestException: {e}")
             except Exception as e:
