@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, TypeVar, Generic, Literal, Union
+from typing import TYPE_CHECKING, TypeVar, Generic, Literal, Union, Match
 
 from .regex_typing import RegEx
 
@@ -15,52 +15,83 @@ __all__ = ("MediaFormat_T",
            "SceneDataID",
            "SceneMarkID",
            "DeviceNodeID",
-           "SceneDataIDRegex",
-           "SceneMarkIDRegex",
-           "DeviceNodeIDRegex",
-)
-
-if TYPE_CHECKING:
-    from datetime import datetime, timezone
-
-    ExampleTimeStamp = Union[
-        Literal['2024-11-05T20:15:57.774Z'],
-        type(datetime.now(timezone.utc).isoformat(timespec='milliseconds').replace("+00:00", "Z")),
-    ]
+           "ZuluTimeStamp",)
 
 RegExpr_T = TypeVar("RegExpr_T", bound=RegEx, covariant=True)
-Example_T = TypeVar("Example_T", bound=str, covariant=True)
+Example_T = TypeVar("Example_T", bound=str,   covariant=True)
+Text_T    = TypeVar("Text_T",    bound=str,   covariant=True)
 
-class StringSpecification(str, Generic[RegExpr_T, Example_T]):
-    _: Union[RegExpr_T, Example_T]
+class StringSpecification(Generic[RegExpr_T, Example_T]):
+    regex:   RegExpr_T
+    example: Example_T
 
-ZuluTimeStampRegex = RegEx[r"^[0-9]{4}-[0-2]{2}-[0-9]{2}T[0-2]:[0-9]{2}:[0-9]{2}.[0-9]{3}Z$"]
+    def __contains__(self, value: Text_T, /) -> bool:
+        return self.match(value) is not None
 
+    def __init__(self, expression: RegEx, example: Example_T):
+        if not expression.match(example):
+            raise ValueError("Example expression must match the provided regex")
+        self.regex   = expression
+        self.example = example
+
+    def __class_getitem__(cls, key: Tuple[RegEx, Example_T,], /) -> StringSpecification[RegEx, Example_T]:
+        try:
+            assert isinstance(key, tuple) and len(key) == 2, \
+                "StringSpecifier takes 2 types, a Matchable RegEx type and a matching example string"
+            expression, example, = key
+            assert expression.match(example), \
+                "Example '%s' does not match the regex of %s" %(example,
+                                                                expression)
+        except AssertionError as ex:
+            raise ValueError(ex) from ex
+        return cls(expression, example,)
+
+    def match(self, *match_args, **match_kwargs):
+        return self.regex.match(*match_args, **match_kwargs)
+
+    def __str__(self) -> str:
+        return self.example
+
+
+NodeIDRegex        = RegEx[r"^[0-9a-f]{4}$"]
+DeviceIDRegex      = RegEx[r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"]
 SceneMarkIDRegex   = RegEx[r"^SMK_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}_[0-9a-f]{8}$"]
-
 SceneDataIDRegex   = RegEx[r"^SDT_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}_[0-9a-f]{8}$"]
-
 DeviceNodeIDRegex  = RegEx[r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}_[0-9a-f]{4}$"]
-
+ZuluTimeStampRegex = RegEx[r"^[0-9]{4}-[01][0-9]-[0-9]{2}T[0-2][0-9]:[0-5][0-9]:[0-5][0-9]\.[0-9]{3}Z$"]
 
 ZuluTimeStamp = StringSpecification[
     ZuluTimeStampRegex,
-    ExampleTimeStamp
+    "2024-11-05T20:15:57.774Z",
+    # i.e.:
+    # import datetime
+    # datetime.datetime.now(datetime.timezone.utc)         \
+    #                  .isoformat(timespec='milliseconds') \
+    #                  .replace("+00:00", "Z")
 ]
 
 SceneMarkID = StringSpecification[
-    SceneDataIDRegex,
-    Literal["SMK_12345678-1234-5678-9abc-123456789abc_fedcba98"]
+    SceneMarkIDRegex,
+    "SMK_12345678-9abc-def0-1234-56789abcdef0_12345678",
 ]
 
 SceneDataID = StringSpecification[
     SceneDataIDRegex,
-    Literal["SDT_12345678-1234-5678-9abc-123456789abc_fedcba98"]
+    "SDT_12345678-9abc-def0-1234-56789abcdef0_12345678",
 ]
 
+NodeID   = StringSpecification[
+    NodeIDRegex,
+    'ef01',
+]
+
+DeviceID = StringSpecification[
+    DeviceIDRegex,
+    "12345678-9abc-def0-1234-56789abcdef0"
+]
 DeviceNodeID = StringSpecification[
     DeviceNodeIDRegex,
-    Literal["12345678-1234-5678-9abc-123456789abc_1234"]
+    "12345678-9abc-def0-1234-56789abcdef0_1234"
 ]
 
 UploadStatus_T = Literal[
@@ -69,13 +100,13 @@ UploadStatus_T = Literal[
 ]
 
 MediaFormat_T = Literal[
-        "UNSPECIFIED",
-        "JPEG",
-        "H.264",
-        "H.265",
-        "RAW",
-        "JSON"
-    ]
+    "UNSPECIFIED",
+    "JPEG",
+    "H.264",
+    "H.265",
+    "RAW",
+    "JSON"
+]
 
 SceneMarkStatus_T = Literal["Active", "Removed", "Processed",]
 
