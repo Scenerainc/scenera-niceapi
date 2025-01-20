@@ -25,29 +25,29 @@ class StringSpecification(Generic[RegExpr_T, Example_T]):
     regex:   RegExpr_T
     example: Example_T
 
-    def __contains__(self, value: Text_T, /) -> bool:
+    def __contains__(self, value: str, /) -> bool:
         return self.match(value) is not None
 
     def __init__(self, expression: RegEx, example: Example_T):
-        if not expression.match(example):
-            raise ValueError("Example expression must match the provided regex")
         self.regex   = expression
         self.example = example
-
+    
     def __class_getitem__(cls, key: Tuple[RegEx, Example_T,], /) -> StringSpecification[RegEx, Example_T]:
         try:
             assert isinstance(key, tuple) and len(key) == 2, \
                 "StringSpecifier takes 2 types, a Matchable RegEx type and a matching example string"
             expression, example, = key
-            assert expression.match(example), \
-                "Example '%s' does not match the regex of %s" %(example,
-                                                                expression)
+            assert hasattr(example, "__args__") and example.__args__
+            for arg in example.__args__:
+                assert expression.match(arg), \
+                    "Example '%s' does not match the regex of %s" %(example,
+                                                                    expression)
         except AssertionError as ex:
             raise ValueError(ex) from ex
         return cls(expression, example,)
 
-    def match(self, *match_args, **match_kwargs):
-        return self.regex.match(*match_args, **match_kwargs)
+    def match(self, value: Text_T) -> Optional[Match[Text_T]]:
+        return self.regex.match(value)
 
     def __str__(self) -> str:
         return self.example
@@ -62,7 +62,7 @@ ZuluTimeStampRegex = RegEx[r"^[0-9]{4}-[01][0-9]-[0-9]{2}T[0-2][0-9]:[0-5][0-9]:
 
 ZuluTimeStamp = StringSpecification[
     ZuluTimeStampRegex,
-    "2024-11-05T20:15:57.774Z",
+    Literal["2024-11-05T20:15:57.774Z"],
     # i.e.:
     # import datetime
     # datetime.datetime.now(datetime.timezone.utc)         \
@@ -72,26 +72,26 @@ ZuluTimeStamp = StringSpecification[
 
 SceneMarkID = StringSpecification[
     SceneMarkIDRegex,
-    "SMK_12345678-9abc-def0-1234-56789abcdef0_12345678",
+    Literal["SMK_12345678-9abc-def0-1234-56789abcdef0_12345678"],
 ]
 
 SceneDataID = StringSpecification[
     SceneDataIDRegex,
-    "SDT_12345678-9abc-def0-1234-56789abcdef0_12345678",
+    Literal["SDT_12345678-9abc-def0-1234-56789abcdef0_12345678"],
 ]
 
 NodeID   = StringSpecification[
     NodeIDRegex,
-    'ef01',
+    Literal['ef01'],
 ]
 
 DeviceID = StringSpecification[
     DeviceIDRegex,
-    "12345678-9abc-def0-1234-56789abcdef0"
+    Literal["12345678-9abc-def0-1234-56789abcdef0"]
 ]
 DeviceNodeID = StringSpecification[
     DeviceNodeIDRegex,
-    "12345678-9abc-def0-1234-56789abcdef0_1234"
+    Literal["12345678-9abc-def0-1234-56789abcdef0_1234"]
 ]
 
 UploadStatus_T = Literal[
