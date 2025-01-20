@@ -26,6 +26,8 @@ class StringSpecification(Generic[RegExpr_T, Example_T]):
     example: Example_T
 
     def __contains__(self, value: str, /) -> bool:
+        if not isinstance(value, str):
+            return False
         return self.match(value) is not None
 
     def __init__(self, expression: RegEx, example: Example_T):
@@ -49,14 +51,14 @@ class StringSpecification(Generic[RegExpr_T, Example_T]):
     def match(self, value: Text_T) -> Optional[Match[Text_T]]:
         return self.regex.match(value)
 
-    def __str__(self) -> str:
-        return self.example
-
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(regex=%r, example=%r)" % (self.regex,
+                                                                     self.example)
 
 NodeIDRegex        = RegEx[r"^[0-9a-f]{4}$"]
 DeviceIDRegex      = RegEx[r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"]
-SceneMarkIDRegex   = RegEx[r"^SMK_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}_[0-9a-f]{8}$"]
-SceneDataIDRegex   = RegEx[r"^SDT_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}_[0-9a-f]{8}$"]
+SceneMarkIDRegex   = RegEx[r"^SMK_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}_[0-9a-f]{4}_[0-9a-f]{8}$"]
+SceneDataIDRegex   = RegEx[r"^SDT_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}_[0-9a-f]{4}_[0-9a-f]{8}$"]
 DeviceNodeIDRegex  = RegEx[r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}_[0-9a-f]{4}$"]
 ZuluTimeStampRegex = RegEx[r"^[0-9]{4}-[01][0-9]-[0-9]{2}T[0-2][0-9]:[0-5][0-9]:[0-5][0-9]\.[0-9]{3}Z$"]
 
@@ -72,12 +74,12 @@ ZuluTimeStamp = StringSpecification[
 
 SceneMarkID = StringSpecification[
     SceneMarkIDRegex,
-    Literal["SMK_12345678-9abc-def0-1234-56789abcdef0_12345678"],
+    Literal["SMK_12345678-9abc-def0-1234-56789abcdef0_1234_56789abc"],
 ]
 
 SceneDataID = StringSpecification[
     SceneDataIDRegex,
-    Literal["SDT_12345678-9abc-def0-1234-56789abcdef0_12345678"],
+    Literal["SDT_12345678-9abc-def0-1234-56789abcdef0_1234_56789abc"],
 ]
 
 NodeID   = StringSpecification[
