@@ -1,4 +1,4 @@
 requests
 pycryptodomex
-git+https://github.com/lepture/authlib.git
+Authlib
 py
