@@ -19,6 +19,7 @@ niceapi.ModeManager:
     Thread: {thread}"""
 
 
+
 @final
 class HealthChecker(Mapping[str, bool]):
     __slots__ = ("mode_manager", "__keys")
@@ -26,7 +27,8 @@ class HealthChecker(Mapping[str, bool]):
     @property
     def thread(self) -> bool:
         return bool(
-            self.mode_manager.task and self.mode_manager.task.is_alive()
+            self.mode_manager.task
+            and self.mode_manager.task.is_alive()
         )
 
     @property
@@ -75,7 +77,10 @@ class HealthChecker(Mapping[str, bool]):
 
     def __bool__(self) -> bool:
         return bool(
-            self.thread and self.control and self.endpoint and self.management
+            self.thread
+            and self.control
+            and self.endpoint
+            and self.management
         )
 
     def __format__(self, format_spec: str) -> str:
@@ -88,3 +93,34 @@ class HealthChecker(Mapping[str, bool]):
     def __str__(self) -> str:
         """Method to support string formatting"""
         return HEALTH_STRING.format(**self)
+
+    def update_api(self,
+                   *method: Callable[..., bool]) -> bool:
+        methods = method or (
+            self.mode_manager.nice_api.initialize_jose,
+            self.mode_manager.nice_api.get_management_end_point,
+            self.mode_manager.nice_api.get_management_object,
+            self.mode_manager.nice_api.get_control_object,
+        )
+        for get_method in methods:
+            status = get_method()
+            if not status:
+                logger.error("Failed to update: %r", get_method)
+                return False
+        return True
+
+    def await_api(self,
+                  *object_: HasAvailable,
+                  timeout = 360) -> bool:
+        objects = object_ or (
+            self.mode_manager.nice_api.endpoint,
+            self.mode_manager.nice_api.management,
+            self.mode_manager.nice_api.control,
+        )
+        for _ in range(timeout):
+            if all(obj.is_available for obj in objects):
+                return True
+            sleep(1)
+        return True
+
+

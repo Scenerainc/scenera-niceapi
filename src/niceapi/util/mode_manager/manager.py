@@ -18,9 +18,11 @@ if TYPE_CHECKING:
     from typing import (
         Any,
         Dict,
+        Callable,
         Generator,
         Iterable,
         Literal,
+        Protocol,
         MutableMapping,
         ParamSpec,
         SupportsIndex,
@@ -43,9 +45,13 @@ if TYPE_CHECKING:
     _Exception = TypeVar("_Exception", bound=BaseException)
     DeviceNode = TypeVar("DeviceNode", bound=DeviceNodeBase)
 
+    class HasAvailable(Protocol):
+        @property
+        def is_available(self) -> bool:
+            ...
+
 logger: logging.Logger = logging.getLogger(__name__)
 _logger_setup(logger, logging.DEBUG)
-
 
 @final
 class ModeManager(Mapping["DeviceNode", Optional["SceneMode"]]):
@@ -153,7 +159,17 @@ class ModeManager(Mapping["DeviceNode", Optional["SceneMode"]]):
 
     def _mode_thread(self):
         while not self.__exit:
-            logger.debug("Mode manager looping over %d nodes", len(self.nodes))
+            if not self.healthy.update_api(
+                    self.__nice_api.get_management_end_point,
+                    self.__nice_api.get_management_object,
+                    self.__nice_api.get_control_object,
+                ):
+                continue
+            if not self.healthy.await_api():
+                continue
+            logger.debug("Mode manager looping over %d nodes",
+                         len(self.nodes))
+ 
             for node_id in self.nodes:
                 try:
                     self._fetch(node_id)
