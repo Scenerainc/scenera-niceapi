@@ -159,14 +159,13 @@ class ModeManager(Mapping["DeviceNode", Optional["SceneMode"]]):
 
     def _mode_thread(self):
         while not self.__exit:
-            if not self.healthy.update_api(
-                    self.__nice_api.get_management_end_point,
-                    self.__nice_api.get_management_object,
-                    self.__nice_api.get_control_object,
-                ):
+            if not self.healthy.update_api():
+                logger.critical("failed to update niceapi endpoints")
                 continue
             if not self.healthy.await_api():
+                logger.error("niceapi endpoints didn't become available within the timeout")
                 continue
+
             logger.debug("Mode manager looping over %d nodes",
                          len(self.nodes))
  
