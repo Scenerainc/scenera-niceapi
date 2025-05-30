@@ -70,7 +70,8 @@ def _legacy_scenemark_quirks(scene_mode: SCENEMODE_T, scene_mark: SCENEMARK_T,) 
         event = analysis["EventType"]
         mode_configs = {
             conf["Analysis"]: conf for conf in scene_mode.get("Mode", {})
-                                                         .get("SceneModeConfig", []) # type: ignore
+                                                         .get("SceneModeConfig", [])
+            if "Analysis" in conf # type: ignore
         }
         if event not in mode_configs:
             raise UnsupportedError(f"Cannot determine the source SceneModeConfig for the event: '{event}'")
