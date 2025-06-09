@@ -9,7 +9,7 @@ import requests
 
 from requests.adapters import HTTPAdapter
 
-# disable warning DO NOT
+# DO NOT disable warning
 #from urllib3.exceptions  import InsecureRequestWarning
 from urllib3.poolmanager import PoolManager
 from urllib3.util.ssl_   import create_urllib3_context
@@ -86,64 +86,57 @@ class _WebAPIDefault(WebAPIBase):
         adapter = _TLSAdapter(cert_reqs)
         session.mount("https://", adapter)
         for i in range(self._MAX_RETRY):
-            try:
-                logger.debug("POST: %s", url)
-                start_time = time.time()
-                response = session.request(
-                    "POST",
-                    url=url,
-                    data=body,
-                    headers=headers,
-                    timeout=timeout,
-                    allow_redirects=False,
-                    verify=verify_cert,
+            logger.debug("POST: %s", url)
+            start_time = time.time()
+            response = session.request(
+                "POST",
+                url=url,
+                data=body,
+                headers=headers,
+                timeout=timeout,
+                allow_redirects=False,
+                verify=verify_cert,
+            )
+            elapsed_time = time.time() - start_time
+            command = os.path.basename(url)
+            logger.debug("%r: %s took ~%04f seconds", response, command, elapsed_time)
+            if response.status_code == 200:
+                try:
+                    response_json = response.json()
+                except ValueError as e:
+                    if response.text:
+                        logger.critical("Invalid JSON response from %s (%s)",
+                                        url,
+                                        e,)
+                    response_json = {}
+                break
+            elif response.status_code == 404:
+                raise UnconfiguredNode()
+            elif response.status_code in self._SUPPORT_REDIRECT_CODE:
+                new_response = self._post_redirect(
+                    session,
+                    url,
+                    verify_cert,
+                    body,
+                    headers,
+                    timeout,
+                    response,
                 )
-                elapsed_time = time.time() - start_time
-                command = os.path.basename(url)
-                logger.debug("%r: %s took ~%04f seconds", response, command, elapsed_time)
-                if response.status_code == 404:
-                    raise UnconfiguredNode()
-                if response.status_code == 200:
+                if new_response.status_code == 200:
                     try:
-                        response_json = response.json()
+                        response_json = new_response.json()
                     except ValueError as e:
                         if response.text:
                             logger.critical("Invalid JSON response from %s (%s)",
                                             url,
                                             e,)
-                        response_json = None
+                        response_json = {}
                     break
-                elif response.status_code in self._SUPPORT_REDIRECT_CODE:
-                    new_response = self._post_redirect(
-                        session,
-                        url,
-                        verify_cert,
-                        body,
-                        headers,
-                        timeout,
-                        response,
-                    )
-                    if new_response.status_code == 200:
-                        try:
-                            response_json = new_response.json()
-                        except ValueError as e:
-                            if response.text:
-                                logger.critical("Invalid JSON response from %s (%s)",
-                                                url,
-                                                e,)
-                            response_json = None
-                        break
-                    else:
-                        logger.debug(new_response.text)
                 else:
-                    logger.debug(response.text)
-            except requests.exceptions.RequestException as e:
-                logger.error("RequestException: %s", e)
-                raise
-            except Exception as e:
-                ex_cls = type(e)
-                logger.error("Unspecified: %s(%s)", ex_cls.__name__, e,) #stack_info=True)
-                raise
+                    logger.debug(new_response.text)
+            else:
+                logger.debug(response.text)
+
 
         return response_json
 

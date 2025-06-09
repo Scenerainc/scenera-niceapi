@@ -192,13 +192,6 @@ class ModeManager(Mapping["DeviceNode | SupportsIndex", Optional["SceneMode"]]):
             if self._debug:
                 logger.debug(_mode)
             mode: SceneMode = _mode or {}
-        except TimeoutError as _e:
-            logger.warning(
-                "Timed out getting node: %04X's scenemode configuration, %s",
-                node,
-                _e,
-            )
-            return
         except UnconfiguredNode:
             with self as data:
                 if data[node] is not None:
@@ -206,9 +199,17 @@ class ModeManager(Mapping["DeviceNode | SupportsIndex", Optional["SceneMode"]]):
                                 node)
                 data[node] = None
             return
-        except requests.RequestException as ex:
-            logger.debug(ex)
-            raise
+        except (TimeoutError,
+                requests.exceptions.Timeout) as _e:
+            logger.warning(
+                "Timed out getting node: %04X's scenemode configuration, %s",
+                node,
+                _e,
+            )
+            return
+        except requests.exceptions.RequestException as ex:
+            logger.error(ex)
+            return
 
         if not status:
             if not self.healthy:

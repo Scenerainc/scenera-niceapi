@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 import base64
 import contextlib
 import json
@@ -8,7 +10,6 @@ import tempfile
 import traceback
 from datetime import datetime, timezone
 from logging import (
-    INFO,
     FileHandler,
     Formatter,
     Logger,
@@ -35,6 +36,7 @@ if TYPE_CHECKING:
     DICT_T = Dict[str, T]
     LIST_T = List[str]
 
+VERBOSE         = os.getenv("VERBOSE", "f")[0].lower() in "yt1"
 LOG_FORMAT: str = (
     "%(asctime)s %(name)s:%(lineno)s %(funcName)s [%(levelname)s]: %(message)s"
 )
@@ -62,7 +64,7 @@ def _logger_setup(
 
 
 _logger: Logger = getLogger(__name__)
-_logger_setup(_logger, INFO)
+_logger_setup(_logger, logging.DEBUG if VERBOSE else logging.INFO)
 
 
 @contextlib.contextmanager
@@ -146,7 +148,6 @@ def _json_load(path: str) -> Optional[Any]:
                 return obj
 
     return None
-
 
 def _is_list(jsn: DICT_T, key: str) -> bool:
     value = jsn.get(key, None)

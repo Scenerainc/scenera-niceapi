@@ -1014,7 +1014,7 @@ class ApiRequest:
                 if obj is not None:
                     objs[dst] = obj
 
-            if not objs:
+            if objs is None:
                 logger.warning("None of the image destinations acknowledge the request")
                 return False, None
 
