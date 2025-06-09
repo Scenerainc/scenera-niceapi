@@ -1,25 +1,26 @@
 import os
 import ssl
 import time
-import traceback
+
 from logging import INFO, Logger, getLogger
 from typing import Any, Dict, Optional, Union
 
 import requests
-import urllib3
+
 from requests.adapters import HTTPAdapter
 
-# disable warning
-from urllib3.exceptions import InsecureRequestWarning
+# disable warning DO NOT
+#from urllib3.exceptions  import InsecureRequestWarning
 from urllib3.poolmanager import PoolManager
-from urllib3.util.ssl_ import create_urllib3_context
+from urllib3.util.ssl_   import create_urllib3_context
 
+from .errors       import UnconfiguredNode
+from .webapi_base  import BODY_T, JSON_T, TLS_ROOT_CERTS_T, WebAPIBase
 from ..util._tools import _file_update, _logger_setup
-from .webapi_base import BODY_T, JSON_T, TLS_ROOT_CERTS_T, WebAPIBase
 
 VERIFY_CERT_T = Union[str, bool, None]
 
-urllib3.disable_warnings(InsecureRequestWarning)
+#urllib3.disable_warnings(InsecureRequestWarning)
 
 CIPHERS: str = (
     "ECDHE-ECDSA-AES256-GCM-SHA384:"
@@ -32,7 +33,6 @@ ROOT_CERT_PATH: str = "tls-root-cert.pem"
 
 logger: Logger = getLogger(__name__)
 _logger_setup(logger, INFO)
-
 
 class _TLSAdapter(HTTPAdapter):
     def __init__(self, cert_reqs: ssl.VerifyMode) -> None:
@@ -58,7 +58,6 @@ class _TLSAdapter(HTTPAdapter):
             ssl_context=context,
             **pool_kwargs,
         )
-
 
 class _WebAPIDefault(WebAPIBase):
     _MAX_REDIRECT = 5
@@ -88,7 +87,7 @@ class _WebAPIDefault(WebAPIBase):
         session.mount("https://", adapter)
         for i in range(self._MAX_RETRY):
             try:
-                logger.info(f"POST:{url}")
+                logger.debug("POST: %s", url)
                 start_time = time.time()
                 response = session.request(
                     "POST",
@@ -101,12 +100,18 @@ class _WebAPIDefault(WebAPIBase):
                 )
                 elapsed_time = time.time() - start_time
                 command = os.path.basename(url)
-                logger.info(f"{response}: {command} took {elapsed_time}s")
+                logger.debug("%r: %s took ~%04f seconds", response, command, elapsed_time)
+                if response.status_code == 404:
+                    raise UnconfiguredNode()
                 if response.status_code == 200:
                     try:
                         response_json = response.json()
-                    except ValueError:
-                        response_json = {}
+                    except ValueError as e:
+                        logger.critical("Invalid response from %s (%s)",
+                                        url,
+                                        e,
+                                        stack_info=True)
+                        response_json = None
                     break
                 elif response.status_code in self._SUPPORT_REDIRECT_CODE:
                     new_response = self._post_redirect(
@@ -121,18 +126,23 @@ class _WebAPIDefault(WebAPIBase):
                     if new_response.status_code == 200:
                         try:
                             response_json = new_response.json()
-                        except ValueError:
-                            response_json = {}
+                        except ValueError as e:
+                            logger.critical("Invalid response from %s (%s)",
+                                            url,
+                                            e,
+                                            stack_info=True)
+                            response_json = None
                         break
                     else:
                         logger.debug(new_response.text)
                 else:
                     logger.debug(response.text)
             except requests.exceptions.RequestException as e:
-                logger.error(f"RequestException: {e}")
+                logger.error("RequestException: %s", e)
+                raise
             except Exception as e:
-                logger.error(traceback.format_exc())
-                logger.error(e)
+                logger.error(e, stack_info=True)
+                raise
 
         return response_json
 
@@ -174,7 +184,7 @@ class _WebAPIDefault(WebAPIBase):
             else:
                 logger.info("no Location")
                 break
-            logger.info(f"POST:{url}")
+            logger.debug("POST: %s", url)
             start_time = time.time()
             response = session.request(
                 "POST",
@@ -187,7 +197,7 @@ class _WebAPIDefault(WebAPIBase):
             )
             elapsed_time = time.time() - start_time
             command = os.path.basename(url)
-            logger.info(f"{response}: {command} took {elapsed_time}s")
+            logger.debug("%r: %s took ~%04f seconds", response, command, elapsed_time)
             if response.status_code not in self._SUPPORT_REDIRECT_CODE:
                 break
         return response

@@ -4,12 +4,16 @@ import logging
 from contextlib import contextmanager
 from threading import Lock, Thread
 from time import sleep
-from typing import TYPE_CHECKING, Mapping, Optional, final
+from typing import TYPE_CHECKING, Optional, final
+from collections.abc import Mapping
 
-from .._tools import _logger_setup
+import requests
+
 from ._health_check import HealthChecker
-from ._nodes import DeviceNodeBase
-from .constants import DEVICE_NODE_COUNT, EXIT_TIMEOUT, REQUEST_SLEEP
+from ._nodes        import DeviceNodeBase
+from .constants     import DEVICE_NODE_COUNT, EXIT_TIMEOUT, REQUEST_SLEEP
+from .._tools       import _logger_setup
+from ...io.errors   import UnconfiguredNode
 
 __all__ = ("ModeManager",)
 
@@ -18,9 +22,8 @@ if TYPE_CHECKING:
     from typing import (
         Any,
         Dict,
-        Callable,
         Generator,
-        Iterable,
+        Iterator,
         Literal,
         Protocol,
         MutableMapping,
@@ -54,7 +57,7 @@ logger: logging.Logger = logging.getLogger(__name__)
 _logger_setup(logger, logging.DEBUG)
 
 @final
-class ModeManager(Mapping["DeviceNode", Optional["SceneMode"]]):
+class ModeManager(Mapping["DeviceNode | SupportsIndex", Optional["SceneMode"]]):
     __slots__ = (
         "__nice_api",
         "__data",
@@ -71,7 +74,7 @@ class ModeManager(Mapping["DeviceNode", Optional["SceneMode"]]):
         __exit: bool
         __nodes: DeviceNode
         __data: Union[
-            Mapping[DeviceNode, SceneMode], Dict[DeviceNode, SceneMode]
+            Mapping[DeviceNode, Optional[SceneMode]],
         ]
         __task: Optional[Thread]
         __lock: Optional[Lock]
@@ -99,7 +102,7 @@ class ModeManager(Mapping["DeviceNode", Optional["SceneMode"]]):
     def __init__(
         self,
         api: ApiRequest,
-        device_nodes: DeviceNode = None,
+        device_nodes: Optional[DeviceNode] = None,
         container: Optional[MutableMapping] = None,
         lock: Optional[Lock] = Lock(),
     ):
@@ -141,7 +144,7 @@ class ModeManager(Mapping["DeviceNode", Optional["SceneMode"]]):
         with self as data:
             return len(data)
 
-    def __iter__(self) -> Iterable[DeviceNode]:
+    def __iter__(self) -> Iterator[DeviceNode]:
         return iter(self.nodes)
 
     def __getitem__(
@@ -190,15 +193,21 @@ class ModeManager(Mapping["DeviceNode", Optional["SceneMode"]]):
                 logger.debug(_mode)
             mode: SceneMode = _mode or {}
         except TimeoutError as _e:
-            # NOTE (the following to be confirmed)
-            # So far it seems something in the niceapi actually ensures
-            # this exception never propagates 'upstream',
-            # have yet to see this log message appear...
             logger.warning(
                 "Timed out getting node: %04X's scenemode configuration, %s",
                 node,
                 _e,
             )
+            return
+        except UnconfiguredNode:
+            with self as data:
+                if data[node] is not None:
+                    logger.info("Removing configuration for node '%04x'",
+                                node)
+                data[node] = None
+            return
+        except requests.RequestException as ex:
+            logger.debug(ex)
             raise
 
         if not status:
@@ -209,15 +218,7 @@ class ModeManager(Mapping["DeviceNode", Optional["SceneMode"]]):
             logger.debug(
                 "requested node: '%04x' does not appear to be configured", node
             )
-        previous = self.get(node)
-        if previous:
-            if previous.get("SceneModeID", "") == mode.get("SceneModeID", ""):
-                return
-            if logger.isEnabledFor(logging.INFO) and previous and not mode:
-                logger.info(
-                    "Removing node configuration ('%s')",
-                    previous.get("SceneModeID", None),
-                )
+
         with self as data:
             if mode:
                 logger.info(
@@ -269,6 +270,6 @@ class ModeManager(Mapping["DeviceNode", Optional["SceneMode"]]):
         if self.__task is None:
             raise RuntimeError("Task must be started before joining")
         self.__exit = True
-        self.__data.clear()
+        self.__data = {}
         self.__task.join(timeout)
         self.__task = None

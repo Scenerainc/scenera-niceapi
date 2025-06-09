@@ -473,7 +473,7 @@ class ApiRequest:
                 bearer,
                 node_id,
             )
-            if not obj:
+            if obj is None:
                 return False, None,
             mode = _SceneMode()
             mode.json = obj
