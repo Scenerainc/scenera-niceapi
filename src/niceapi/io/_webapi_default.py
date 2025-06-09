@@ -107,10 +107,10 @@ class _WebAPIDefault(WebAPIBase):
                     try:
                         response_json = response.json()
                     except ValueError as e:
-                        logger.critical("Invalid response from %s (%s)",
-                                        url,
-                                        e,
-                                        stack_info=True)
+                        if response.text:
+                            logger.critical("Invalid JSON response from %s (%s)",
+                                            url,
+                                            e,)
                         response_json = None
                     break
                 elif response.status_code in self._SUPPORT_REDIRECT_CODE:
@@ -127,10 +127,10 @@ class _WebAPIDefault(WebAPIBase):
                         try:
                             response_json = new_response.json()
                         except ValueError as e:
-                            logger.critical("Invalid response from %s (%s)",
-                                            url,
-                                            e,
-                                            stack_info=True)
+                            if response.text:
+                                logger.critical("Invalid JSON response from %s (%s)",
+                                                url,
+                                                e,)
                             response_json = None
                         break
                     else:
@@ -141,7 +141,8 @@ class _WebAPIDefault(WebAPIBase):
                 logger.error("RequestException: %s", e)
                 raise
             except Exception as e:
-                logger.error(e, stack_info=True)
+                ex_cls = type(e)
+                logger.error("Unspecified: %s(%s)", ex_cls.__name__, e,) #stack_info=True)
                 raise
 
         return response_json
