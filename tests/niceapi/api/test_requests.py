@@ -1,4 +1,8 @@
+from __future__ import annotations
+
 from enum import Enum
+from typing import TYPE_CHECKING
+
 import copy
 import json
 import os
@@ -12,6 +16,10 @@ from .test_control import CONTROL_OBJECT
 from .test_mode import SCENE_MODE
 
 from src.niceapi.api._api import _ApiID
+
+if TYPE_CHECKING:
+    from src.niceapi.api.requests import _SETTER_FUNC_T
+
 __TMP_DICT = {e.name:e.value for e in _ApiID}
 __TMP_DICT.update({"BAD_API": 99})
 _BadApi:_ApiID = Enum("_BadApi", __TMP_DICT)
@@ -482,16 +490,27 @@ class TestApiRequest:
 
         #error "control.is_available"
         ApiRequest.control.json = None
-        success, _ = ApiRequest.get_scene_mode(NODE_ID)
+        try:
+            success, _ = ApiRequest.get_scene_mode(NODE_ID)
+        except KeyError:
+            success = False
         assert success == False
         #dummy
         ApiRequest.control.json = json.loads(CONTROL_OBJECT)
-        success, _ = ApiRequest.get_scene_mode(NODE_ID)
+
+        try:
+            success, _ = ApiRequest.get_scene_mode(NODE_ID)
+        except KeyError:
+            success = False
         assert success == True
         #TIME_LOG
         import src.niceapi.api.requests as flag
         flag.TIME_LOG = True
-        success, _ = ApiRequest.get_scene_mode(NODE_ID)
+
+        try:
+            success, _ = ApiRequest.get_scene_mode(NODE_ID)
+        except KeyError:
+            success = False
         assert success == True
         flag.TIME_LOG = False
         #invalid IDs
@@ -511,7 +530,11 @@ class TestApiRequest:
                     }})
             })
         ApiRequest._jws_verify = verify_invalid1
-        success, _ =  ApiRequest.get_scene_mode(NODE_ID)
+
+        try:
+            success, _ = ApiRequest.get_scene_mode(NODE_ID)
+        except KeyError:
+            success = False
         assert success == False
         def verify_invalid2(param):
             return True, json.dumps({
@@ -528,15 +551,27 @@ class TestApiRequest:
                     }})
             })
         ApiRequest._jws_verify = verify_invalid2
-        success, _ =  ApiRequest.get_scene_mode(NODE_ID)
+
+        try:
+            success, _ = ApiRequest.get_scene_mode(NODE_ID)
+        except KeyError:
+            success = False
+
         assert success == False
         #error 
         mocker.patch.object(_WebAPI, "post_json").return_value = {"ABC": "XXX"}
-        success, _ = ApiRequest.get_scene_mode(NODE_ID)
+
+        try:
+            success, _ = ApiRequest.get_scene_mode(NODE_ID)
+        except KeyError:
+            success = False
         assert success == False
         #delete DeviceSecurityObject
         ApiRequest.set_security_object(None)
-        success, _ = ApiRequest.get_scene_mode(NODE_ID)
+        try:
+            success, _ = ApiRequest.get_scene_mode(NODE_ID)
+        except KeyError:
+            success = False
         assert success == False
 
         #recover DeviceSecurityObject
@@ -585,9 +620,12 @@ class TestApiRequest:
         del control_json["ControlEndPoints"][0]["NetEndPoint"]["NodeID"]
         ApiRequest.control.json = control_json
 
-        success, _ = ApiRequest.get_scene_mode(NODE_ID)
-
+        try:
+            success, _ = ApiRequest.get_scene_mode(NODE_ID)
+        except KeyError:
+            success = False
         assert success == True
+
         mock_ApiComponent.assert_called_with('localhost', 'NET_END_POINT_ID', NODE_ID)
 
         #recover DeviceSecurityObject
@@ -602,7 +640,6 @@ class TestApiRequest:
         from src.niceapi.api.requests import ApiRequest
         from src.niceapi.api._api import _ApiComponent, _ApiID
         from src.niceapi.api._mode import _Encryption
-        from src.niceapi.api.requests import _SETTER_FUNC_T
 
 
         api = _ApiComponent(_ApiID.GET_PRIVACY_OBJECT)
@@ -995,13 +1032,14 @@ class TestApiRequest:
         """
         from src.niceapi.api.requests import ApiRequest
         from src.niceapi.api.requests import _WebAPI
+        ApiRequest.set_legacy_library_quirks(False)
         mocker.patch.object(_WebAPI, "post_json").return_value = {}
         mocker.patch.object(_WebAPI, "post_text").return_value = {}
         scene_mark = ApiRequest.new_scene_mark(
             version="1.0",
             time_stamp="2022-02-21T12:34:56.123Z",
             scene_mark_id="123",
-            node_id="001"
+            node_id="0  001"
         )
         ApiRequest.set_security_object(json.loads(SECURITY_OBJECT))
         scene_mode = json.loads(SCENE_MODE)

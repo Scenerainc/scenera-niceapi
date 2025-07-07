@@ -6,7 +6,9 @@ def pytest_html_results_table_header(cells):
     cells.insert(2, html.th('Description'))
 
 def pytest_html_results_table_row(report, cells):
-    cells.insert(2, html.td(report.description))
+    description = getattr(report, 'description', None)
+    if description:
+        cells.insert(2, html.td(description))
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):

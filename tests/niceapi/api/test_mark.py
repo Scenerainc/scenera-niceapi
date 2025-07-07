@@ -188,6 +188,7 @@ class TestSceneMark:
         test set_source_node_id (SceneData)
         """
         scenedata = SceneMark.SceneData(
+            parent=SceneMark,
             scene_data_id="123",
             time_stamp="2022-02-21T12:34:56.123Z",
             encryption=False,
@@ -200,6 +201,7 @@ class TestSceneMark:
         test set_source_node_description (SceneData)
         """
         scenedata = SceneMark.SceneData(
+            parent=SceneMark,
             scene_data_id="123",
             time_stamp="2022-02-21T12:34:56.123Z",
             encryption=False,
@@ -212,6 +214,7 @@ class TestSceneMark:
         test set_duration (SceneData)
         """
         scenedata = SceneMark.SceneData(
+            parent=SceneMark,
             scene_data_id="123",
             time_stamp="2022-02-21T12:34:56.123Z",
             encryption=False,
@@ -224,6 +227,7 @@ class TestSceneMark:
         test set_data_type (SceneData)
         """
         scenedata = SceneMark.SceneData(
+            parent=SceneMark,
             scene_data_id="123",
             time_stamp="2022-02-21T12:34:56.123Z",
             encryption=False,
@@ -236,6 +240,7 @@ class TestSceneMark:
         test set_status (SceneData)
         """
         scenedata = SceneMark.SceneData(
+            parent=SceneMark,
             scene_data_id="123",
             time_stamp="2022-02-21T12:34:56.123Z",
             encryption=False,
@@ -248,6 +253,7 @@ class TestSceneMark:
         test set_media_format (SceneData)
         """
         scenedata = SceneMark.SceneData(
+            parent=SceneMark,
             scene_data_id="123",
             time_stamp="2022-02-21T12:34:56.123Z",
             encryption=False,
@@ -260,6 +266,7 @@ class TestSceneMark:
         test set_resolution (SceneData)
         """
         scenedata = SceneMark.SceneData(
+            parent=SceneMark,
             scene_data_id="123",
             time_stamp="2022-02-21T12:34:56.123Z",
             encryption=False,
@@ -274,6 +281,7 @@ class TestSceneMark:
         test set_scene_data_uri (SceneData)
         """
         scenedata = SceneMark.SceneData(
+            parent=SceneMark,
             scene_data_id="123",
             time_stamp="2022-02-21T12:34:56.123Z",
             encryption=False,
@@ -286,6 +294,7 @@ class TestSceneMark:
         test set_embedded_scene_data (SceneData)
         """
         scenedata = SceneMark.SceneData(
+            parent=SceneMark,
             scene_data_id="123",
             time_stamp="2022-02-21T12:34:56.123Z",
             encryption=False,

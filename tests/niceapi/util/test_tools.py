@@ -6,7 +6,7 @@ import json
 import os
 import pytest
 from unittest import mock
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class TestTools:
@@ -64,13 +64,13 @@ class TestTools:
         Get current UTC datetime.
         """
         # mock set
-        m.utcnow.return_value = datetime(2022, 2, 22, 7, 00, 00, 423315)
+        m.now.return_value = datetime(2022, 2, 22, 7, 00, 00, 423315, tzinfo=timezone.utc)
 
         # test
         date_time = _datetime_utcnow()
         
         # check
-        assert date_time == '2022-02-22T07:00:00.423Z'
+        assert date_time == '2022-02-22T07:00:00.423Z', date_time
 
     def test_datetime_decode_01(self):
         """
@@ -80,7 +80,7 @@ class TestTools:
         date_time = _datetime_decode('2022-02-22T07:00:00.423Z')
 
         # expect
-        expect_date_time = datetime(2022, 2, 22, 7, 00, 00, 423000)
+        expect_date_time = datetime(2022, 2, 22, 7, 00, 00, 423000, tzinfo=timezone.utc)
         
         # check
         assert date_time == expect_date_time

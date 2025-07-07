@@ -281,18 +281,18 @@ class _SceneMode(JSONMapping[Any]):
                  "_mode_encryptions",)
 
     def __init__(self) -> None:
-        self._initialize()
-
-    def _initialize(self) -> None:
-        self._json: Optional[DICT_T] = None
-        self._video_url = None
-        self._input_encryption: Optional[_Encryption] = None
+        self._json: Optional[DICT_T]                       = None
+        self._video_url                                    = None
+        self._input_encryption: Optional[_Encryption]      = None
         self._image_config: Optional[_OutputConfiguration] = None
         self._video_config: Optional[_OutputConfiguration] = None
-        self._mark_inputs: List[Any] = list()
-        self._mark_outputs: List[Any] = list()
-        self._ref_encryptions: List[_Encryption] = list()
-        self._mode_encryptions: List[_Encryption] = list()
+        self._mark_inputs: List[Any]              = []
+        self._mark_outputs: List[Any]             = []
+        self._ref_encryptions: List[_Encryption]  = []
+        self._mode_encryptions: List[_Encryption] = []
+
+    def _initialize(self) -> None:
+        self.__init__()
 
     @property
     def is_available(self) -> bool:
@@ -330,11 +330,14 @@ class _SceneMode(JSONMapping[Any]):
                         raise KeyError("Invalid Outputs")
                     config = _OutputConfiguration()
                     destination_endpoints = output.get(
-                        "DestinationEndPointList"
+                        "DestinationEndPointList",
+                        None
                     )
                     if destination_endpoints is not None:
                         if not _is_list(output, "DestinationEndPointList"):
                             raise ValueError("Invalid DestinationEndPointList")
+                    if destination_endpoints is None:
+                        raise KeyError("Missing DestinationEndPointList")
                     for destination_endpoint in destination_endpoints:
                         if not _is_valid_endpoint(destination_endpoint):
                             raise KeyError("Invalid DestinationEndPointList")
@@ -480,7 +483,6 @@ class _SceneMode(JSONMapping[Any]):
             self._json = obj
         except Exception as e:
             logger.error(e)
-            raise
 
     @property
     def video_url(self) -> Optional[str]:

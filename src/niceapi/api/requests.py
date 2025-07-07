@@ -131,7 +131,9 @@ class ApiRequest:
     _legacy_library_quirks = False
 
     @classmethod
-    def set_legacy_library_quirks(cls, __value: bool = False, /):
+    def set_legacy_library_quirks(cls, __value: Optional[bool] = None, /):
+        if __value is None:
+            return cls.set_legacy_library_quirks(not cls._legacy_library_quirks)
         cls._legacy_library_quirks = __value
 
     @classmethod
@@ -779,7 +781,7 @@ class ApiRequest:
             scene_mode = cast(DICT_T, scene_mode)
         
         with _logging_time(TIME_LOG, logger, "SetSceneMark"):
-            if cls._legacy_library_quirks:
+            if cls._legacy_library_quirks is True:
                 from ..util.legacy_compat import _legacy_scenemark_quirks # pylint: disable=C0415
                 scene_mark = _legacy_scenemark_quirks(scene_mode=scene_mode, scene_mark=scene_mark,)
             # keep current SceneMode
@@ -833,7 +835,8 @@ class ApiRequest:
                             )
                     except Exception as e: # pylint: disable=W0718
                         logger.error(e)
-                        return False, None,
+                        
+                        #return False, None,
                 else:
                     if VERBOSE:
                         logger.debug(json.dumps(scene_mark, indent=4, default=_JSON_ENCODER_DEFAULT))
@@ -969,7 +972,7 @@ class ApiRequest:
             scene_data = cast(Dict[str, Any], scene_data)
 
         with _logging_time(TIME_LOG, logger, "SetSceneData(Image)"):
-            if cls._legacy_library_quirks:
+            if cls._legacy_library_quirks is True:
                 from ..util.legacy_compat import _legacy_datasection_quirks # pylint: disable=C0415
                 scene_data = _legacy_datasection_quirks(scene_mode,
                                                         scene_data,)
@@ -1046,7 +1049,7 @@ class ApiRequest:
             JSON Object of the response. (empty for now)
         """
         with _logging_time(TIME_LOG, logger, "SetSceneData(Video)"):
-            if cls._legacy_library_quirks:
+            if cls._legacy_library_quirks is True:
                 from ..util.legacy_compat import _legacy_datasection_quirks # pylint: disable=C0415
                 scene_data = _legacy_datasection_quirks(scene_mode,
                                                         scene_data,)

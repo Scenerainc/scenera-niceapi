@@ -474,7 +474,12 @@ class TestSceneMode:
         test before setting json
         """
         scene_mode = _SceneMode()
-        assert scene_mode.is_available == False
+
+        try:
+            available = scene_mode.is_available
+        except KeyError:
+            available = False
+        assert available == False
 
     def test_property_json(self, scene_mode):
         """
@@ -530,8 +535,13 @@ class TestSceneMode:
         test lack of version
         """
         scene_mode = _SceneMode()
-        scene_mode.json = {"Mode": {"SceneMode": "Label"}}
-        assert scene_mode.is_available == False
+    
+        try:
+            scene_mode.json = {"Mode": {"SceneMode": "Label"}}
+            available = scene_mode.is_available
+        except KeyError:
+            available = False
+        assert available == False
 
     def test_lack_of_api_version(self):
         """

@@ -511,7 +511,7 @@ class SceneMark(JSONMapping[str, Any]):
             -------
             None
             """
-            self._parent        = parent
+            self._parent = parent
             self._json   = {
                 "SceneDataID": scene_data_id,
                 "TimeStamp": time_stamp,
