@@ -1,7 +1,7 @@
 # import base64
 import json
 from base64 import b64decode
-from datetime import datetime
+from datetime import datetime, timezone
 from logging import INFO, Logger, getLogger
 from typing import Any, Callable, Dict, List, Optional, Union, cast
 
@@ -94,13 +94,13 @@ class Verify(JWSVerify):
             b64decode(certs[0]), default_backend()
         ).public_key()
         try:
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             for c in certs:
                 issuer = x509.load_der_x509_certificate(
                     b64decode(c), default_backend()
                 )
-                before = issuer.not_valid_before
-                after = issuer.not_valid_after
+                before = issuer.not_valid_before_utc
+                after  = issuer.not_valid_after_utc
                 if not (before < now < after):
                     logger.error(
                         f"Out of date! now:{now}, "

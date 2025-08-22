@@ -1,13 +1,26 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Mapping, final
+import typing
+import logging
+
+from time import sleep
+
+from .._tools import _logger_setup
 
 __all__ = ("HealthChecker",)
 
-if TYPE_CHECKING:
-    from typing import Iterator, Literal
+if typing.TYPE_CHECKING:
+    from typing import Iterator, Callable, Literal
 
     from .manager import ModeManager
+
+class HasAvailable(typing.Protocol):
+    @property
+    def available(self) -> bool:
+        ...
+
+logger: logging.Logger = logging.getLogger(__name__)
+_logger_setup(logger, logging.DEBUG)
 
 
 HEALTH_STRING = """Healthy:
@@ -18,10 +31,8 @@ niceapi.ApiRequest:
 niceapi.ModeManager:
     Thread: {thread}"""
 
-
-
-@final
-class HealthChecker(Mapping[str, bool]):
+@typing.final
+class HealthChecker(typing.Mapping[str, bool]):
     __slots__ = ("mode_manager", "__keys")
 
     @property
@@ -122,5 +133,3 @@ class HealthChecker(Mapping[str, bool]):
                 return True
             sleep(1)
         return True
-
-
